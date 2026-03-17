@@ -1,39 +1,56 @@
-Wave Crusher
-Wave Crusher, Unity 6 ile geliştirilmiş 2D mobil aksiyon türünde bir oyundur. Oyuncu ekranın ortasında sabit duran bir karakteri yönetir. Karakter otomatik olarak sağa ve sola saldırır. Düşmanlar dalgalar halinde sağdan ve soldan gelir. Oyuncu düşman öldürerek XP kazanır, seviye atlar ve yeni yetenekler seçer. Son dalgada Boss düşmanını öldürerek bölümü tamamlar.
+🎮 Wave Crusher
 
-Oyun Özellikleri
-Otomatik saldırı sistemi
-Dalga dalga gelen düşmanlar
-Her dalgada güçlenen düşmanlar
-10 farklı yetenek seçim sistemi
-Boss dalgası
-HP, XP ve seviye sistemi
-Zırh sistemi
-Kullanılan Teknolojiler
+Wave Crusher, Unity 6 ile geliştirilmiş 2D mobil aksiyon türünde bir oyundur.
+
+Oyuncu, ekranın ortasında sabit duran bir karakteri kontrol eder. Karakter otomatik olarak sağa ve sola saldırır. Düşmanlar dalgalar halinde gelir ve her dalgada güçlenir. Oyuncu XP kazanarak seviye atlar ve yeni yetenekler seçer. Son dalgada Boss’u yenerek bölümü tamamlar.
+
+🚀 Oyun Özellikleri
+
+⚔️ Otomatik saldırı sistemi
+
+🌊 Dalga dalga gelen düşmanlar
+
+📈 Her dalgada güçlenen düşmanlar
+
+🧠 10 farklı yetenek seçim sistemi
+
+👑 Boss dalgası
+
+❤️ HP, XP ve seviye sistemi
+
+🛡️ Zırh sistemi
+
+🛠️ Kullanılan Teknolojiler
+
 Unity 6 (6000.3.9f1)
+
 C#
+
 Unity Input System
+
 Unity UI (TextMeshPro)
-Kurulum ve Çalıştırma
-Bu repoyu bilgisayarınıza klonlayın:
-text
 
+📥 Kurulum ve Çalıştırma
+1. Repoyu klonlayın
 git clone https://github.com/kullaniciadi/wavecrusher.git
-Unity Hub'ı açın.
 
-Unity Hub'da "Open" butonuna tıklayın.
+2. Unity ile açın
 
-Klonladığınız klasörü seçin.
+Unity Hub'ı açın
 
-Unity 6 (6000.3.9f1) sürümü ile projeyi açın.
+Open butonuna tıklayın
 
-Assets/Scenes klasöründen "GameScene" sahnesini açın.
+Proje klasörünü seçin
 
-Unity editöründe Play butonuna basarak oyunu çalıştırın.
+Unity sürümü olarak 6000.3.9f1 kullanın
 
-Proje Klasör Yapısı
-text
+3. Oyunu çalıştırın
 
+Assets/Scenes/GameScene.unity sahnesini açın
+
+Unity editöründe Play butonuna basın
+
+📁 Proje Klasör Yapısı
 Assets/
 ├── Prefabs/
 │   ├── Enemy.prefab
@@ -53,132 +70,184 @@ Assets/
     │   └── LevelUpManager.cs
     └── UI/
         └── UIManager.cs
-        
-Scriptlerin Kullanımı
-PlayerController.cs
-Bu script karakterin otomatik saldırı sistemini yönetir. Player objesine eklenir.
+
+🧠 Script Kullanımları
+🎯 PlayerController.cs
+
+Karakterin otomatik saldırı sistemini yönetir.
 
 Önemli değişkenler:
 
-attackRange: Saldırı menzilini belirler. Varsayılan değer 1'dir.
-attackCooldown: İki saldırı arasındaki bekleme süresidir. Varsayılan değer 0.5 saniyedir.
-attackDamage: Her vuruşta verilen hasardır. Varsayılan değer 10'dur.
-enemyLayer: Düşman layerını belirtir. Inspector'dan Enemy layerı seçilmelidir.
+attackRange → Saldırı menzili (varsayılan: 1)
 
-Kullanımı:
-Player objesine bu scripti ekleyin. Inspector'dan enemyLayer değerini Enemy olarak ayarlayın. Script otomatik olarak çalışır, ek bir ayar gerekmez.
+attackCooldown → Saldırı aralığı (varsayılan: 0.5 sn)
 
-PlayerStats.cs
-Bu script karakterin istatistiklerini yönetir. Player objesine eklenir.
+attackDamage → Hasar miktarı (varsayılan: 10)
 
-Önemli değişkenler:
+enemyLayer → Enemy layer referansı
 
-maxHP: Karakterin maksimum can puanıdır. Varsayılan değer 100'dür.
-currentHP: Karakterin mevcut can puanıdır.
-currentXP: Karakterin mevcut XP puanıdır.
-currentLevel: Karakterin mevcut seviyesidir.
-xpToNextLevel: Sonraki seviye için gereken XP miktarıdır. Varsayılan değer 100'dür.
-armor: Karakterin zırh değeridir. Düşman hasarını azaltır.
+Kullanım:
 
-Önemli metodlar:
+Player objesine eklenir
 
-TakeDamage(int damage): Karaktere hasar verir. Zırh değeri hesaba katılır.
-GainXP(int amount): Karaktere XP kazandırır. Yeterli XP birikince otomatik seviye atlar.
-HealHP(int amount): Karakterin canını yeniler.
-IncreaseMaxHP(int amount): Karakterin maksimum canını artırır.
-IncreaseArmor(int amount): Karakterin zırhını artırır.
+enemyLayer → Enemy olarak ayarlanır
 
-EnemyController.cs
-Bu script düşmanın hareketini ve saldırısını yönetir. Enemy ve Boss prefablarına eklenir.
+Otomatik çalışır
 
-Önemli değişkenler:
+❤️ PlayerStats.cs
 
-attackInterval: Düşmanın kaç saniyede bir saldıracağını belirler. Varsayılan değer 1.5 saniyedir.
-stopDistance: Düşmanın karaktere ne kadar yaklaşınca duracağını belirler. Varsayılan değer 1.5'tir.
+Karakterin istatistiklerini yönetir.
 
-Kullanımı:
-Enemy prefabına bu scripti ekleyin. Script otomatik olarak Player'ı bulur ve ona doğru hareket eder. Player'a yeterince yaklaştığında durur ve saldırmaya başlar.
+Değişkenler:
 
-EnemyStats.cs
-Bu script düşmanın istatistiklerini yönetir. Enemy ve Boss prefablarına eklenir.
+maxHP, currentHP
 
-Önemli değişkenler:
+currentXP, currentLevel
 
-maxHP: Düşmanın maksimum can puanıdır. Normal düşman için 30, Boss için 200'dür.
-damage: Düşmanın oyuncuya verdiği hasardır. Normal düşman için 5, Boss için 15'tir.
-xpReward: Düşman öldürüldüğünde verilen XP miktarıdır. Normal düşman için 20, Boss için 100'dür.
-moveSpeed: Düşmanın hareket hızıdır. Normal düşman için 2, Boss için 1.5'tir.
+xpToNextLevel
 
-Önemli metodlar:
+armor
 
-TakeDamage(int damageAmount): Düşmana hasar verir. Can sıfırlanınca Die metodu çağrılır.
-Die(): Düşmanı öldürür, oyuncuya XP verir ve WaveManager'a bildirim gönderir.
+Metodlar:
 
-WaveManager.cs
-Bu script oyunun dalga sistemini yönetir. Ayrı bir WaveManager objesine eklenir.
+TakeDamage(int damage)
 
-Önemli değişkenler:
+GainXP(int amount)
 
-leftSpawnPoint: Sol taraftaki spawn noktasıdır. Inspector'dan atanmalıdır.
-rightSpawnPoint: Sağ taraftaki spawn noktasıdır. Inspector'dan atanmalıdır.
-normalEnemyPrefab: Normal düşman prefabıdır. Inspector'dan atanmalıdır.
-bossPrefab: Boss düşman prefabıdır. Inspector'dan atanmalıdır.
-totalWaves: Toplam normal dalga sayısıdır. Varsayılan değer 5'tir.
-timeBetweenWaves: Dalgalar arasındaki bekleme süresidir. Varsayılan değer 3 saniyedir.
-baseEnemyCount: İlk dalgadaki düşman sayısıdır. Varsayılan değer 3'tür.
-enemyHPMultiplier: Her dalgada düşman HP artış çarpanıdır. Varsayılan değer 1.3'tür.
-enemySpeedMultiplier: Her dalgada düşman hız artış çarpanıdır. Varsayılan değer 1.1'dir.
+HealHP(int amount)
 
-Önemli metodlar:
+IncreaseMaxHP(int amount)
 
-OnEnemyDied(): Bir düşman öldüğünde EnemyStats tarafından çağrılır.
-GetCurrentWave(): Mevcut dalga numarasını döndürür.
-GetTotalWaves(): Toplam dalga sayısını döndürür.
+IncreaseArmor(int amount)
 
-LevelUpManager.cs
-Bu script yetenek seçim sistemini yönetir. Ayrı bir LevelUpManager objesine eklenir.
+👾 EnemyController.cs
 
-Önemli değişkenler:
+Düşman hareketi ve saldırısını yönetir.
 
-levelUpPanel: Yetenek seçim paneli GameObject'idir. Inspector'dan atanmalıdır.
-card1Title, card2Title, card3Title: Kart başlık TextMeshPro bileşenleridir.
-card1Desc, card2Desc, card3Desc: Kart açıklama TextMeshPro bileşenleridir.
-card1Icon, card2Icon, card3Icon: Kart ikon TextMeshPro bileşenleridir.
-playerController: PlayerController referansıdır. Inspector'dan atanmalıdır.
-playerStats: PlayerStats referansıdır. Inspector'dan atanmalıdır.
+Değişkenler:
 
-Önemli metodlar:
+attackInterval (varsayılan: 1.5 sn)
 
-ShowLevelUpPanel(): Oyunu duraklatır ve yetenek seçim panelini açar. PlayerStats tarafından çağrılır.
-SelectAbility1(): Birinci kartı seçer ve yeteneği uygular.
-SelectAbility2(): İkinci kartı seçer ve yeteneği uygular.
-SelectAbility3(): Üçüncü kartı seçer ve yeteneği uygular.
+stopDistance (varsayılan: 1.5)
 
-UIManager.cs
-Bu script oyunun kullanıcı arayüzünü yönetir. Ayrı bir UIManager objesine eklenir.
+Kullanım:
 
-Önemli değişkenler:
+Enemy ve Boss prefablarına eklenir
 
-hpBar: HP slider bileşenidir. Inspector'dan atanmalıdır.
-xpBar: XP slider bileşenidir. Inspector'dan atanmalıdır.
-waveText: Dalga sayacı TextMeshPro bileşenidir. Inspector'dan atanmalıdır.
-levelText: Seviye göstergesi TextMeshPro bileşenidir. Inspector'dan atanmalıdır.
-stageClearPanel: Stage Clear paneli GameObject'idir. Inspector'dan atanmalıdır.
-gameOverPanel: Game Over paneli GameObject'idir. Inspector'dan atanmalıdır.
-playerStats: PlayerStats referansıdır. Inspector'dan atanmalıdır.
-waveManager: WaveManager referansıdır. Inspector'dan atanmalıdır.
+Player’a otomatik yönelir ve saldırır
 
-Önemli metodlar:
+💀 EnemyStats.cs
 
-ShowStageClear(): Stage Clear panelini gösterir. WaveManager tarafından çağrılır.
-ShowGameOver(): Game Over panelini gösterir. PlayerStats tarafından çağrılır.
+Düşman istatistiklerini yönetir.
 
-Oyun Nasıl Oynanır
-Oyun başladığında karakter ekranın ortasına yerleşir.
-Düşmanlar sağdan ve soldan gelmeye başlar.
-Karakter otomatik olarak saldırır, herhangi bir tuşa basmaya gerek yoktur.
-Düşmanlar öldürüldükçe XP kazanılır.
-Yeterli XP birikince seviye atlanır ve yetenek seçim ekranı açılır.
-3 yetenek kartından biri seçilir ve oyun devam eder.
-Tüm dalgalar tamamlanınca Boss çıkar.
-Boss öldürülünce bölüm tamamlanır.
+Değerler:
+
+Normal Enemy → HP: 30 | Damage: 5 | XP: 20 | Speed: 2
+
+Boss → HP: 200 | Damage: 15 | XP: 100 | Speed: 1.5
+
+Metodlar:
+
+TakeDamage(int damageAmount)
+
+Die()
+
+🌊 WaveManager.cs
+
+Dalga sistemini kontrol eder.
+
+Değişkenler:
+
+leftSpawnPoint, rightSpawnPoint
+
+normalEnemyPrefab, bossPrefab
+
+totalWaves (5)
+
+timeBetweenWaves (3 sn)
+
+baseEnemyCount (3)
+
+enemyHPMultiplier (1.3)
+
+enemySpeedMultiplier (1.1)
+
+Metodlar:
+
+OnEnemyDied()
+
+GetCurrentWave()
+
+GetTotalWaves()
+
+🧩 LevelUpManager.cs
+
+Yetenek seçim sistemini yönetir.
+
+Görevleri:
+
+Oyunu duraklatır
+
+3 rastgele yetenek sunar
+
+Seçilen yeteneği uygular
+
+Metodlar:
+
+ShowLevelUpPanel()
+
+SelectAbility1()
+
+SelectAbility2()
+
+SelectAbility3()
+
+🖥️ UIManager.cs
+
+Oyun arayüzünü yönetir.
+
+Bileşenler:
+
+HP Bar
+
+XP Bar
+
+Wave Text
+
+Level Text
+
+Stage Clear Panel
+
+Game Over Panel
+
+Metodlar:
+
+ShowStageClear()
+
+ShowGameOver()
+
+🎮 Oyun Nasıl Oynanır
+
+Oyun başladığında karakter ekranın ortasında yer alır
+
+Düşmanlar sağdan ve soldan gelir
+
+Karakter otomatik olarak saldırır
+
+Düşmanlar öldükçe XP kazanılır
+
+Seviye atlandığında yetenek seçilir
+
+Tüm dalgalar tamamlanır
+
+Boss ortaya çıkar
+
+Boss yenilince bölüm tamamlanır
+
+📌 Notlar
+
+Oyun mobil için tasarlanmıştır ancak geliştirme PC üzerinde yapılmıştır
+
+Tüm sistemler modüler şekilde geliştirilmiştir
+
+Kod yapısı OOP prensiplerine uygundur
