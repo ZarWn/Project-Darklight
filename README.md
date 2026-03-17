@@ -31,8 +31,10 @@ Unity Input System
 Unity UI (TextMeshPro)
 
 📥 Kurulum ve Çalıştırma
+<pre>
 1. Repoyu klonlayın
 git clone https://github.com/kullaniciadi/wavecrusher.git
+</pre>
 
 2. Unity ile açın
 
