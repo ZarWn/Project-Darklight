@@ -114,9 +114,14 @@ public class WaveManager : MonoBehaviour
     }
 
     void StageClear()
+{
+    Debug.Log("★ STAGE CLEAR! ★");
+    UIManager uiManager = FindFirstObjectByType<UIManager>();
+    if (uiManager != null)
     {
-        Debug.Log("★ STAGE CLEAR! ★");
+        uiManager.ShowStageClear();
     }
+}
 
     public int GetCurrentWave() => currentWave;
     public int GetTotalWaves() => totalWaves;

@@ -6,7 +6,7 @@ public class EnemyController : MonoBehaviour
     private EnemyStats stats;
     private float attackTimer = 0f;
     public float attackInterval = 1.5f;
-    public float stopDistance = 1.2f;
+    public float stopDistance = 1.5f;
 
     void Start()
     {
@@ -23,7 +23,10 @@ public class EnemyController : MonoBehaviour
     {
         if (playerTransform == null) return;
 
-        float distanceToPlayer = Vector2.Distance(transform.position, playerTransform.position);
+        float distanceToPlayer = Vector2.Distance(
+            transform.position,
+            playerTransform.position
+        );
 
         if (distanceToPlayer > stopDistance)
         {
@@ -37,9 +40,15 @@ public class EnemyController : MonoBehaviour
 
     void MoveTowardsPlayer()
     {
-        Vector2 direction = (playerTransform.position - transform.position).normalized;
-        transform.position += (Vector3)(direction * stats.moveSpeed * Time.deltaTime);
+        Vector2 currentPos = transform.position;
+        Vector2 targetPos = playerTransform.position;
+        Vector2 direction = (targetPos - currentPos).normalized;
 
+        // Sadece X ekseninde hareket et
+        float newX = currentPos.x + direction.x * stats.moveSpeed * Time.deltaTime;
+        transform.position = new Vector3(newX, currentPos.y, 0f);
+
+        // Yüz yönü
         if (direction.x > 0)
             transform.localScale = new Vector3(1, 1, 1);
         else
@@ -53,7 +62,6 @@ public class EnemyController : MonoBehaviour
         if (attackTimer >= attackInterval)
         {
             attackTimer = 0f;
-
             PlayerStats playerStats = playerTransform.GetComponent<PlayerStats>();
             if (playerStats != null)
             {

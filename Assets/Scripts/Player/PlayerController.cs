@@ -9,53 +9,38 @@ public class PlayerController : MonoBehaviour
     public LayerMask enemyLayer;
 
     private float lastAttackTime;
-    private PlayerStats stats;
-    private int attackDirection = 1;
-
-    void Start()
-    {
-        stats = GetComponent<PlayerStats>();
-    }
+    private float attackTimer;
+    private int attackDirection = 1; // 1 = sağ, -1 = sol
 
     void Update()
     {
-        HandleInput();
+        AutoAttack();
     }
 
-    void HandleInput()
+    void AutoAttack()
     {
-        if (Input.GetMouseButtonDown(0))
+        attackTimer += Time.deltaTime;
+
+        if (attackTimer >= attackCooldown)
         {
-            Vector3 touchPos = Input.mousePosition;
+            attackTimer = 0f;
 
-            if (touchPos.x > Screen.width / 2f)
-            {
-                attackDirection = 1;
-            }
-            else
-            {
-                attackDirection = -1;
-            }
+            // Önce sağa bak, sağda düşman var mı?
+            bool hitRight = PerformAttack(1);
 
-            TryAttack();
+            // Sola bak, solda düşman var mı?
+            bool hitLeft = PerformAttack(-1);
         }
     }
 
-    void TryAttack()
-    {
-        if (Time.time - lastAttackTime < attackCooldown) return;
-        lastAttackTime = Time.time;
-        PerformAttack();
-    }
-
-    void PerformAttack()
+    bool PerformAttack(int direction)
     {
         Vector2 attackPoint = (Vector2)transform.position +
-                              Vector2.right * attackDirection * attackRange;
+                              Vector2.right * direction * attackRange;
 
         Collider2D[] hitEnemies = Physics2D.OverlapCircleAll(
             attackPoint,
-            1f,
+            0.5f,
             enemyLayer
         );
 
@@ -68,6 +53,40 @@ public class PlayerController : MonoBehaviour
                 Debug.Log($"Düşmana {attackDamage} hasar verildi!");
             }
         }
+
+        return hitEnemies.Length > 0;
+    }
+
+    // Yetenek sistemi tarafından çağrılacak metodlar
+    public void IncreaseAttackSpeed(float amount)
+    {
+        attackCooldown = Mathf.Max(0.1f, attackCooldown - amount);
+        Debug.Log($"Saldırı hızı arttı! Yeni cooldown: {attackCooldown}");
+    }
+
+    public void IncreaseAttackDamage(int amount)
+    {
+        attackDamage += amount;
+        Debug.Log($"Saldırı hasarı arttı! Yeni hasar: {attackDamage}");
+    }
+
+    public void IncreaseAttackRange(float amount)
+    {
+        attackRange += amount;
+        Debug.Log($"Saldırı menzili arttı! Yeni menzil: {attackRange}");
+    }
+
+    public void IncreaseFireDamage(int amount)
+    {
+    // Her vuruşta ekstra ateş hasarı
+    attackDamage += amount;
+    Debug.Log($"Ateş hasarı eklendi! Yeni hasar: {attackDamage}");
+    }
+
+    public void ActivateSuperSpeed()
+    {
+    attackCooldown = Mathf.Max(0.1f, attackCooldown - 0.2f);
+    Debug.Log($"Süper hız aktif! Yeni cooldown: {attackCooldown}");
     }
 
     void OnDrawGizmosSelected()
