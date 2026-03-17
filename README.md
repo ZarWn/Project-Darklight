@@ -50,6 +50,7 @@ Assets/Scenes/GameScene.unity sahnesini açın
 
 Unity editöründe Play butonuna basın
 
+<pre>
 📁 Proje Klasör Yapısı
 Assets/
 ├── Prefabs/
@@ -70,6 +71,7 @@ Assets/
     │   └── LevelUpManager.cs
     └── UI/
         └── UIManager.cs
+</pre>
 
 🧠 Script Kullanımları
 🎯 PlayerController.cs
