@@ -55,7 +55,7 @@ public class PlayerStats : MonoBehaviour
     Debug.Log($"SEVİYE ATLANDI! Yeni Seviye: {currentLevel}");
     onLevelUp?.Invoke();
 
-    // LevelUpManager'ı çağır
+    
     LevelUpManager levelUpManager = FindFirstObjectByType<LevelUpManager>();
     if (levelUpManager != null)
     {
@@ -66,11 +66,24 @@ public class PlayerStats : MonoBehaviour
     void Die()
     {
     Debug.Log("Oyuncu öldü! GAME OVER");
+
+    
+    Time.timeScale = 0f;
+
+    
+    LevelUpManager levelUpManager = FindFirstObjectByType<LevelUpManager>();
+    if (levelUpManager != null)
+    {
+        levelUpManager.gameObject.SetActive(false);
+    }
+
+    
     UIManager uiManager = FindFirstObjectByType<UIManager>();
     if (uiManager != null)
     {
         uiManager.ShowGameOver();
     }
+
     onPlayerDeath?.Invoke();
     }
 

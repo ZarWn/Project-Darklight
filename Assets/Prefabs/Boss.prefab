@@ -13,7 +13,7 @@ GameObject:
   - component: {fileID: 7890490184415367700}
   - component: {fileID: 5146536727363965810}
   - component: {fileID: 4204100017732508573}
-  - component: {fileID: 4268797690215467191}
+  - component: {fileID: 8888381894599414594}
   m_Layer: 6
   m_Name: Boss
   m_TagString: Untagged
@@ -176,7 +176,7 @@ MonoBehaviour:
   damage: 15
   xpReward: 100
   moveSpeed: 1.5
---- !u!114 &4268797690215467191
+--- !u!114 &8888381894599414594
 MonoBehaviour:
   m_ObjectHideFlags: 0
   m_CorrespondingSourceObject: {fileID: 0}
@@ -185,8 +185,16 @@ MonoBehaviour:
   m_GameObject: {fileID: 4380212862275443398}
   m_Enabled: 1
   m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 89d0c177ac8ef304d932558667f16370, type: 3}
+  m_Script: {fileID: 11500000, guid: baffe2ac538a01b4f9eee022c37f29f5, type: 3}
   m_Name: 
-  m_EditorClassIdentifier: Assembly-CSharp::EnemyController
-  attackInterval: 1.5
-  stopDistance: 1.2
+  m_EditorClassIdentifier: Assembly-CSharp::BossController
+  stopDistance: 1.5
+  normalAttackInterval: 2
+  phase2AttackInterval: 1.2
+  phase3AttackInterval: 0.8
+  aoeRange: 3
+  aoeDamage: 20
+  aoeInterval: 5
+  normalSpeed: 1.5
+  phase2Speed: 2.5
+  phase3Speed: 3.5

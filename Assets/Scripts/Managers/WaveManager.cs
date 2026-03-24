@@ -1,4 +1,5 @@
 using UnityEngine;
+using UnityEngine.SceneManagement;
 using System.Collections;
 
 public class WaveManager : MonoBehaviour
@@ -26,10 +27,15 @@ public class WaveManager : MonoBehaviour
     private bool waveInProgress = false;
     private bool bossSpawned = false;
 
-    void Start()
+   void Start()
+{
+   
+    if (StageManager.Instance != null)
     {
-        StartCoroutine(StartNextWave());
+        totalWaves = StageManager.Instance.GetWavesForCurrentStage();
     }
+    StartCoroutine(StartNextWave());
+}
 
     IEnumerator StartNextWave()
     {
@@ -74,32 +80,44 @@ public class WaveManager : MonoBehaviour
     }
 
     void SpawnEnemy(Transform spawnPoint, int waveNumber)
+{
+    GameObject enemy = Instantiate(normalEnemyPrefab, spawnPoint.position, Quaternion.identity);
+
+    EnemyStats enemyStats = enemy.GetComponent<EnemyStats>();
+    if (enemyStats != null)
     {
-        GameObject enemy = Instantiate(normalEnemyPrefab, spawnPoint.position, Quaternion.identity);
+        
+        float hpMultiplier = Mathf.Pow(enemyHPMultiplier, waveNumber - 1);
+        float regionHP = StageManager.Instance != null ? StageManager.Instance.GetRegionHPMultiplier() : 1f;
+        enemyStats.maxHP = Mathf.RoundToInt(enemyStats.maxHP * hpMultiplier * regionHP);
+        enemyStats.currentHP = enemyStats.maxHP;
 
-        EnemyStats enemyStats = enemy.GetComponent<EnemyStats>();
-        if (enemyStats != null)
-        {
-            float hpMultiplier = Mathf.Pow(enemyHPMultiplier, waveNumber - 1);
-            enemyStats.maxHP = Mathf.RoundToInt(enemyStats.maxHP * hpMultiplier);
-            enemyStats.currentHP = enemyStats.maxHP;
+        float speedMultiplier = Mathf.Pow(enemySpeedMultiplier, waveNumber - 1);
+        float regionSpeed = StageManager.Instance != null ? StageManager.Instance.GetRegionSpeedMultiplier() : 1f;
+        enemyStats.moveSpeed *= speedMultiplier * regionSpeed;
 
-            float speedMultiplier = Mathf.Pow(enemySpeedMultiplier, waveNumber - 1);
-            enemyStats.moveSpeed *= speedMultiplier;
+        enemyStats.xpReward = Mathf.RoundToInt(enemyStats.xpReward * (1 + (waveNumber - 1) * 0.2f));
+    }
+}
 
-            enemyStats.xpReward = Mathf.RoundToInt(enemyStats.xpReward * (1 + (waveNumber - 1) * 0.2f));
-        }
+   IEnumerator SpawnBoss()
+    {
+    bossSpawned = true;
+    Debug.Log("!!! BOSS DALGA BAŞLIYOR !!!");
+
+    
+    UIManager uiManager = FindFirstObjectByType<UIManager>();
+    if (uiManager != null)
+    {
+        uiManager.ShowBossWarning();
     }
 
-    IEnumerator SpawnBoss()
-    {
-        bossSpawned = true;
-        Debug.Log("!!! BOSS DALGA BAŞLIYOR !!!");
+    
+    yield return new WaitForSeconds(2f);
 
-        GameObject boss = Instantiate(bossPrefab, rightSpawnPoint.position, Quaternion.identity);
-        enemiesAlive = 1;
-
-        yield return null;
+    
+    GameObject boss = Instantiate(bossPrefab, rightSpawnPoint.position, Quaternion.identity);
+    enemiesAlive = 1;
     }
 
     public void OnEnemyDied()
@@ -113,14 +131,29 @@ public class WaveManager : MonoBehaviour
         }
     }
 
-    void StageClear()
+void StageClear()
 {
     Debug.Log("★ STAGE CLEAR! ★");
+
     UIManager uiManager = FindFirstObjectByType<UIManager>();
     if (uiManager != null)
     {
         uiManager.ShowStageClear();
     }
+
+    if (StageManager.Instance != null)
+    {
+        StageManager.Instance.NextStage();
+    }
+
+    StartCoroutine(LoadNextStage());
+}
+
+IEnumerator LoadNextStage()
+{
+    yield return new WaitForSeconds(3f);
+
+    UnityEngine.SceneManagement.SceneManager.LoadScene("GameScene");
 }
 
     public int GetCurrentWave() => currentWave;

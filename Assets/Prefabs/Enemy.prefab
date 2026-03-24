@@ -173,7 +173,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::EnemyStats
   maxHP: 30
   currentHP: 0
-  damage: 5
+  damage: 10
   xpReward: 20
   moveSpeed: 2
 --- !u!114 &3142817586697638561
