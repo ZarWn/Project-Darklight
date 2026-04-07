@@ -17,11 +17,6 @@ public class LevelUpManager : MonoBehaviour
     public TextMeshProUGUI card2Desc;
     public TextMeshProUGUI card3Desc;
 
-    [Header("Kart İkonları")]
-    public TextMeshProUGUI card1Icon;
-    public TextMeshProUGUI card2Icon;
-    public TextMeshProUGUI card3Icon;
-
     [Header("Referanslar")]
     public PlayerController playerController;
     public PlayerStats playerStats;
@@ -52,11 +47,6 @@ public class LevelUpManager : MonoBehaviour
         "Saldırı hızın\nmaksimuma çıkar"
     };
 
-    private string[] abilityIcons = {
-        "⚔️", "⚡", "📏", "❤️", "💥",
-        "🛡️", "🔥", "💗", "🗡️", "🌪️"
-    };
-
     private int ability1Index;
     private int ability2Index;
     private int ability3Index;
@@ -84,20 +74,14 @@ public class LevelUpManager : MonoBehaviour
         }
         while (ability3Index == ability1Index || ability3Index == ability2Index);
 
-        // Kart 1
         card1Title.text = abilityNames[ability1Index];
         card1Desc.text = abilityDescs[ability1Index];
-        if (card1Icon != null) card1Icon.text = abilityIcons[ability1Index];
 
-        // Kart 2
         card2Title.text = abilityNames[ability2Index];
         card2Desc.text = abilityDescs[ability2Index];
-        if (card2Icon != null) card2Icon.text = abilityIcons[ability2Index];
 
-        // Kart 3
         card3Title.text = abilityNames[ability3Index];
         card3Desc.text = abilityDescs[ability3Index];
-        if (card3Icon != null) card3Icon.text = abilityIcons[ability3Index];
     }
 
     public void SelectAbility1()
@@ -122,34 +106,34 @@ public class LevelUpManager : MonoBehaviour
     {
         switch (index)
         {
-            case 0: // Saldırı Hasarı
+            case 0:
                 playerController.IncreaseAttackDamage(5);
                 break;
-            case 1: // Saldırı Hızı
+            case 1:
                 playerController.IncreaseAttackSpeed(0.1f);
                 break;
-            case 2: // Saldırı Menzili
+            case 2:
                 playerController.IncreaseAttackRange(0.5f);
                 break;
-            case 3: // Can Yenileme
+            case 3:
                 playerStats.HealHP(10);
                 break;
-            case 4: // Çift Hasar
+            case 4:
                 playerController.IncreaseAttackDamage(playerController.attackDamage);
                 break;
-            case 5: // Zırh
+            case 5:
                 playerStats.IncreaseArmor(2);
                 break;
-            case 6: // Ateş Hasarı
+            case 6:
                 playerController.IncreaseFireDamage(3);
                 break;
-            case 7: // Max Can Artışı
+            case 7:
                 playerStats.IncreaseMaxHP(20);
                 break;
-            case 8: // Güçlü Darbe
+            case 8:
                 playerController.IncreaseAttackDamage(10);
                 break;
-            case 9: // Süper Hız
+            case 9:
                 playerController.ActivateSuperSpeed();
                 break;
         }
