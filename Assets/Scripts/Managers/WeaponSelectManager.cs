@@ -82,7 +82,7 @@ public class WeaponSelectManager : MonoBehaviour
 
     public void SelectWeapon()
     {
-        weaponManager.SelectWeapon(currentWeaponIndex);
-        SceneManager.LoadScene("GameScene");
+    weaponManager.SelectWeapon(currentWeaponIndex);
+    SceneManager.LoadScene("FloorSelectScene");
     }
 }

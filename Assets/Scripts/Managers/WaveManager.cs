@@ -1,6 +1,6 @@
 using UnityEngine;
-using UnityEngine.SceneManagement;
 using System.Collections;
+using UnityEngine.SceneManagement;
 
 public class WaveManager : MonoBehaviour
 {
@@ -27,15 +27,10 @@ public class WaveManager : MonoBehaviour
     private bool waveInProgress = false;
     private bool bossSpawned = false;
 
-   void Start()
-{
-   
-    if (StageManager.Instance != null)
+    void Start()
     {
-        totalWaves = StageManager.Instance.GetWavesForCurrentStage();
+        StartCoroutine(StartNextWave());
     }
-    StartCoroutine(StartNextWave());
-}
 
     IEnumerator StartNextWave()
     {
@@ -53,7 +48,6 @@ public class WaveManager : MonoBehaviour
 
             if (currentWave < totalWaves)
             {
-                Debug.Log($"{timeBetweenWaves} saniye sonra sonraki dalga...");
                 yield return new WaitForSeconds(timeBetweenWaves);
             }
         }
@@ -80,44 +74,38 @@ public class WaveManager : MonoBehaviour
     }
 
     void SpawnEnemy(Transform spawnPoint, int waveNumber)
-{
-    GameObject enemy = Instantiate(normalEnemyPrefab, spawnPoint.position, Quaternion.identity);
-
-    EnemyStats enemyStats = enemy.GetComponent<EnemyStats>();
-    if (enemyStats != null)
     {
-        
-        float hpMultiplier = Mathf.Pow(enemyHPMultiplier, waveNumber - 1);
-        float regionHP = StageManager.Instance != null ? StageManager.Instance.GetRegionHPMultiplier() : 1f;
-        enemyStats.maxHP = Mathf.RoundToInt(enemyStats.maxHP * hpMultiplier * regionHP);
-        enemyStats.currentHP = enemyStats.maxHP;
+        GameObject enemy = Instantiate(normalEnemyPrefab, spawnPoint.position, Quaternion.identity);
 
-        float speedMultiplier = Mathf.Pow(enemySpeedMultiplier, waveNumber - 1);
-        float regionSpeed = StageManager.Instance != null ? StageManager.Instance.GetRegionSpeedMultiplier() : 1f;
-        enemyStats.moveSpeed *= speedMultiplier * regionSpeed;
+        EnemyStats enemyStats = enemy.GetComponent<EnemyStats>();
+        if (enemyStats != null)
+        {
+            float hpMultiplier = Mathf.Pow(enemyHPMultiplier, waveNumber - 1);
+            enemyStats.maxHP = Mathf.RoundToInt(enemyStats.maxHP * hpMultiplier);
+            enemyStats.currentHP = enemyStats.maxHP;
 
-        enemyStats.xpReward = Mathf.RoundToInt(enemyStats.xpReward * (1 + (waveNumber - 1) * 0.2f));
-    }
-}
+            float speedMultiplier = Mathf.Pow(enemySpeedMultiplier, waveNumber - 1);
+            enemyStats.moveSpeed *= speedMultiplier;
 
-   IEnumerator SpawnBoss()
-    {
-    bossSpawned = true;
-    Debug.Log("!!! BOSS DALGA BAŞLIYOR !!!");
-
-    
-    UIManager uiManager = FindFirstObjectByType<UIManager>();
-    if (uiManager != null)
-    {
-        uiManager.ShowBossWarning();
+            enemyStats.xpReward = Mathf.RoundToInt(enemyStats.xpReward * (1 + (waveNumber - 1) * 0.2f));
+        }
     }
 
-    
-    yield return new WaitForSeconds(2f);
+    IEnumerator SpawnBoss()
+    {
+        bossSpawned = true;
+        Debug.Log("!!! BOSS DALGA BAŞLIYOR !!!");
 
-    
-    GameObject boss = Instantiate(bossPrefab, rightSpawnPoint.position, Quaternion.identity);
-    enemiesAlive = 1;
+        UIManager uiManager = FindFirstObjectByType<UIManager>();
+        if (uiManager != null)
+        {
+            uiManager.ShowBossWarning();
+        }
+
+        yield return new WaitForSeconds(2f);
+
+        GameObject boss = Instantiate(bossPrefab, rightSpawnPoint.position, Quaternion.identity);
+        enemiesAlive = 1;
     }
 
     public void OnEnemyDied()
@@ -127,34 +115,30 @@ public class WaveManager : MonoBehaviour
 
         if (enemiesAlive <= 0 && bossSpawned)
         {
-            StageClear();
+            FloorComplete();
         }
     }
 
-void StageClear()
-{
-    Debug.Log("★ STAGE CLEAR! ★");
-
-    UIManager uiManager = FindFirstObjectByType<UIManager>();
-    if (uiManager != null)
+    void FloorComplete()
     {
-        uiManager.ShowStageClear();
+        Debug.Log("★ KAT TAMAMLANDI! ★");
+        UIManager uiManager = FindFirstObjectByType<UIManager>();
+        if (uiManager != null)
+        {
+            uiManager.ShowStageClear();
+        }
+
+        FloorManager floorManager = FindFirstObjectByType<FloorManager>();
+        if (floorManager != null)
+        {
+            floorManager.OnFloorCompleted();
+        }
     }
 
-    if (StageManager.Instance != null)
+    public void SetTotalWaves(int waves)
     {
-        StageManager.Instance.NextStage();
+        totalWaves = waves;
     }
-
-    StartCoroutine(LoadNextStage());
-}
-
-IEnumerator LoadNextStage()
-{
-    yield return new WaitForSeconds(3f);
-
-    UnityEngine.SceneManagement.SceneManager.LoadScene("GameScene");
-}
 
     public int GetCurrentWave() => currentWave;
     public int GetTotalWaves() => totalWaves;

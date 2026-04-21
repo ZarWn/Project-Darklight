@@ -12,6 +12,9 @@ EditorBuildSettings:
     path: Assets/Scenes/WeaponSelect.unity
     guid: ff354e99c2abfe946b583c43ecdd7508
   - enabled: 1
+    path: Assets/Scenes/FloorSelectScene.unity
+    guid: 2cce5e47758b43749a4e33da0c02f691
+  - enabled: 1
     path: Assets/Scenes/GameScene.unity
     guid: 161574397f7c37341af3cd436c3a9f81
   m_configObjects:

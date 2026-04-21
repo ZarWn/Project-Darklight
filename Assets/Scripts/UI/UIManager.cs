@@ -11,18 +11,16 @@ public class UIManager : MonoBehaviour
 
     [Header("Textler")]
     public TextMeshProUGUI waveText;
-    public TextMeshProUGUI stageInfoText;
     public TextMeshProUGUI levelText;
     public TextMeshProUGUI hpValueText;
     public TextMeshProUGUI xpValueText;
+    public TextMeshProUGUI floorText;
+    public TextMeshProUGUI goldText;
+    public TextMeshProUGUI killText;
 
     [Header("Paneller")]
     public GameObject stageClearPanel;
     public GameObject gameOverPanel;
-
-    [Header("Referanslar")]
-    public PlayerStats playerStats;
-    public WaveManager waveManager;
 
     [Header("Boss UI")]
     public GameObject bossHPPanel;
@@ -30,13 +28,19 @@ public class UIManager : MonoBehaviour
     public TextMeshProUGUI bossNameText;
     public GameObject bossWarningPanel;
 
-   void Update()
+    [Header("Referanslar")]
+    public PlayerStats playerStats;
+    public WaveManager waveManager;
+
+    void Update()
     {
-    UpdateHP();
-    UpdateXP();
-    UpdateWaveText();
-    UpdateLevelText();
-    UpdateStageInfo();
+        UpdateHP();
+        UpdateXP();
+        UpdateWaveText();
+        UpdateLevelText();
+        UpdateGoldText();
+        UpdateKillText();
+        UpdateFloorText();
     }
 
     void UpdateHP()
@@ -62,16 +66,8 @@ public class UIManager : MonoBehaviour
     void UpdateWaveText()
     {
         if (waveManager == null) return;
-        waveText.text = $"Dalga: {waveManager.GetCurrentWave()}/{waveManager.GetTotalWaves()}";
-    }
-
-    void UpdateStageInfo()
-    {
-    if (stageInfoText == null) return;
-    if (StageManager.Instance != null)
-    {
-        stageInfoText.text = StageManager.Instance.GetStageInfo();
-    }
+        if (waveText != null)
+            waveText.text = $"Dalga: {waveManager.GetCurrentWave()}/{waveManager.GetTotalWaves()}";
     }
 
     void UpdateLevelText()
@@ -81,56 +77,71 @@ public class UIManager : MonoBehaviour
             levelText.text = $"Seviye: {playerStats.currentLevel}";
     }
 
+    void UpdateGoldText()
+    {
+        if (playerStats == null) return;
+        if (goldText != null)
+            goldText.text = $"Altin: {playerStats.gold}";
+    }
+
+    void UpdateKillText()
+    {
+        if (playerStats == null) return;
+        if (killText != null)
+            killText.text = $"Kill: {playerStats.killCount}";
+    }
+
+    void UpdateFloorText()
+    {
+        if (floorText != null && FloorManager.Instance != null)
+            floorText.text = $"Kat: {FloorManager.Instance.currentFloor}/15";
+    }
+
     public void ShowStageClear()
     {
-        stageClearPanel.SetActive(true);
+        if (stageClearPanel != null)
+            stageClearPanel.SetActive(true);
     }
 
     public void ShowGameOver()
     {
-        gameOverPanel.SetActive(true);
+        if (gameOverPanel != null)
+            gameOverPanel.SetActive(true);
     }
 
     public void ShowBossHP(int maxHP, string bossName)
-{
-    if (bossHPPanel != null)
     {
-        bossHPPanel.SetActive(true);
-        bossHPBar.maxValue = maxHP;
-        bossHPBar.value = maxHP;
-        bossNameText.text = bossName;
+        if (bossHPPanel != null)
+        {
+            bossHPPanel.SetActive(true);
+            bossHPBar.maxValue = maxHP;
+            bossHPBar.value = maxHP;
+            bossNameText.text = bossName;
+        }
     }
-}
 
-public void UpdateBossHP(int currentHP)
-{
-    if (bossHPBar != null)
+    public void UpdateBossHP(int currentHP)
     {
-        bossHPBar.value = currentHP;
+        if (bossHPBar != null)
+            bossHPBar.value = currentHP;
     }
-}
 
-public void HideBossHP()
-{
-    if (bossHPPanel != null)
+    public void HideBossHP()
     {
-        bossHPPanel.SetActive(false);
+        if (bossHPPanel != null)
+            bossHPPanel.SetActive(false);
     }
-}
 
-public void ShowBossWarning()
-{
-    if (bossWarningPanel != null)
+    public void ShowBossWarning()
     {
-        StartCoroutine(BossWarningCoroutine());
+        if (bossWarningPanel != null)
+            StartCoroutine(BossWarningCoroutine());
     }
-}
 
-IEnumerator BossWarningCoroutine()
-{
-    bossWarningPanel.SetActive(true);
-    yield return new WaitForSeconds(2f);
-    bossWarningPanel.SetActive(false);
-}
-
+    IEnumerator BossWarningCoroutine()
+    {
+        bossWarningPanel.SetActive(true);
+        yield return new WaitForSeconds(2f);
+        bossWarningPanel.SetActive(false);
+    }
 }

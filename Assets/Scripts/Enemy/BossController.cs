@@ -167,17 +167,15 @@ public class BossController : MonoBehaviour
 
     string GetBossName()
     {
-        if (StageManager.Instance != null)
-        {
-            switch (StageManager.Instance.currentRegion)
-            {
-                case 1: return "Orman Canavarı";
-                case 2: return "Çöl Ejderi";
-                case 3: return "Karanlık Kral";
-                default: return "BOSS";
-            }
-        }
-        return "BOSS";
+    if (FloorManager.Instance != null)
+    {
+        int currentFloor = FloorManager.Instance.currentFloor;
+        if (currentFloor <= 6) return "Zindan Bekçisi";
+        if (currentFloor <= 9) return "Karanlık Şövalye";
+        if (currentFloor <= 12) return "Kule Efendisi";
+        return "Karanlık Kral";
+    }
+    return "BOSS";
     }
 
     void OnDrawGizmosSelected()
