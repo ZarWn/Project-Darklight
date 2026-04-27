@@ -1,5 +1,6 @@
 using UnityEngine;
 
+
 public class PlayerController : MonoBehaviour
 {
     [Header("Saldırı Ayarları")]
@@ -13,33 +14,59 @@ public class PlayerController : MonoBehaviour
     private WeaponData currentWeapon;
     private PlayerStats playerStats;
 
+    
+    public static PlayerController Instance;
+
+    private void Awake()
+    {
+    if (Instance == null)
+    {
+        Instance = this;
+        DontDestroyOnLoad(gameObject);
+    }
+    else
+    {
+        Destroy(gameObject);
+    }
+    }
     void Start()
     {
-        playerStats = GetComponent<PlayerStats>();
-        ApplyWeapon();
+    playerStats = GetComponent<PlayerStats>();
+    ApplyWeapon();
+    }
+
+    void OnEnable()
+    {
+    // Her sahne geçişinde silahı tekrar uygula
+    playerStats = GetComponent<PlayerStats>();
+    ApplyWeapon();
     }
 
     void ApplyWeapon()
+{
+    // Enemy layer'ı her zaman ayarla
+    enemyLayer = LayerMask.GetMask("Enemy");
+
+    if (WeaponManager.Instance == null) return;
+
+    currentWeapon = WeaponManager.Instance.GetSelectedWeapon();
+    if (currentWeapon == null) return;
+
+    attackDamage = currentWeapon.damage;
+    attackCooldown = currentWeapon.attackSpeed;
+    attackRange = currentWeapon.range;
+
+    if (currentWeapon.weaponType == WeaponType.RuhTirpani)
     {
-        if (WeaponManager.Instance == null) return;
-
-        currentWeapon = WeaponManager.Instance.GetSelectedWeapon();
-        if (currentWeapon == null) return;
-
-        // Silah özelliklerini uygula
-        attackDamage = currentWeapon.damage;
-        attackCooldown = currentWeapon.attackSpeed;
-        attackRange = currentWeapon.range;
-
-        // Negatif özellikler
-        if (currentWeapon.weaponType == WeaponType.RuhTirpani)
+        if (playerStats != null)
         {
             playerStats.maxHP -= currentWeapon.maxHPPenalty;
-            playerStats.currentHP = playerStats.maxHP;
+            playerStats.currentHP = Mathf.Min(playerStats.currentHP, playerStats.maxHP);
         }
-
-        Debug.Log($"Silah uygulandı: {currentWeapon.weaponName}");
     }
+
+    Debug.Log($"Silah uygulandı: {currentWeapon.weaponName}");
+}
 
     void Update()
     {

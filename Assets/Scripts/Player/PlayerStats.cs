@@ -22,6 +22,21 @@ public class PlayerStats : MonoBehaviour
     public UnityEvent onLevelUp;
     public UnityEvent onPlayerDeath;
 
+    
+    public static PlayerStats Instance;
+
+private void Awake()
+{
+    if (Instance == null)
+    {
+        Instance = this;
+        DontDestroyOnLoad(gameObject);
+    }
+    else
+    {
+        Destroy(gameObject);
+    }
+}
     void Start()
     {
         currentHP = maxHP;

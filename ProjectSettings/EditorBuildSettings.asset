@@ -17,6 +17,15 @@ EditorBuildSettings:
   - enabled: 1
     path: Assets/Scenes/GameScene.unity
     guid: 161574397f7c37341af3cd436c3a9f81
+  - enabled: 1
+    path: Assets/Scenes/ShopScene.unity
+    guid: bf4dfdbc4de7bbb4faa558f85d1b0095
+  - enabled: 1
+    path: Assets/Scenes/TreasureScene.unity
+    guid: 4de32e7f436962141bbe486412045d24
+  - enabled: 1
+    path: Assets/Scenes/RestScene.unity
+    guid: be279611a1fc6e04da7173b034af906c
   m_configObjects:
     com.unity.input.settings.actions: {fileID: -944628639613478452, guid: 3590b91b4603b465dbb4216d601bff33, type: 3}
   m_UseUCBPForAssetBundles: 0

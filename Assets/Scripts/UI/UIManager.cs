@@ -65,9 +65,9 @@ public class UIManager : MonoBehaviour
 
     void UpdateWaveText()
     {
-        if (waveManager == null) return;
-        if (waveText != null)
-            waveText.text = $"Dalga: {waveManager.GetCurrentWave()}/{waveManager.GetTotalWaves()}";
+    if (waveText == null) return;
+    if (waveManager == null) return;
+    waveText.text = $"Dalga: {waveManager.GetCurrentWave()}/{waveManager.GetTotalWaves()}";
     }
 
     void UpdateLevelText()
