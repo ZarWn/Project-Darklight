@@ -10,13 +10,12 @@ public class UIManager : MonoBehaviour
     public Slider xpBar;
 
     [Header("Textler")]
-    public TextMeshProUGUI waveText;
     public TextMeshProUGUI levelText;
     public TextMeshProUGUI hpValueText;
     public TextMeshProUGUI xpValueText;
-    public TextMeshProUGUI floorText;
     public TextMeshProUGUI goldText;
     public TextMeshProUGUI killText;
+    public TextMeshProUGUI floorText;
 
     [Header("Paneller")]
     public GameObject stageClearPanel;
@@ -28,15 +27,23 @@ public class UIManager : MonoBehaviour
     public TextMeshProUGUI bossNameText;
     public GameObject bossWarningPanel;
 
-    [Header("Referanslar")]
-    public PlayerStats playerStats;
-    public WaveManager waveManager;
+    private PlayerStats playerStats;
+    private WaveManager waveManager;
+
+    void Start()
+    {
+        // Her sahnede PlayerStats'ı bul
+        playerStats = FindFirstObjectByType<PlayerStats>();
+        waveManager = FindFirstObjectByType<WaveManager>();
+    }
 
     void Update()
     {
+        if (playerStats == null)
+            playerStats = FindFirstObjectByType<PlayerStats>();
+
         UpdateHP();
         UpdateXP();
-        UpdateWaveText();
         UpdateLevelText();
         UpdateGoldText();
         UpdateKillText();
@@ -46,9 +53,11 @@ public class UIManager : MonoBehaviour
     void UpdateHP()
     {
         if (playerStats == null) return;
-        hpBar.value = playerStats.currentHP;
-        hpBar.maxValue = playerStats.maxHP;
-
+        if (hpBar != null)
+        {
+            hpBar.maxValue = playerStats.maxHP;
+            hpBar.value = playerStats.currentHP;
+        }
         if (hpValueText != null)
             hpValueText.text = $"{playerStats.currentHP}/{playerStats.maxHP}";
     }
@@ -56,18 +65,13 @@ public class UIManager : MonoBehaviour
     void UpdateXP()
     {
         if (playerStats == null) return;
-        xpBar.value = playerStats.currentXP;
-        xpBar.maxValue = playerStats.xpToNextLevel;
-
+        if (xpBar != null)
+        {
+            xpBar.maxValue = playerStats.xpToNextLevel;
+            xpBar.value = playerStats.currentXP;
+        }
         if (xpValueText != null)
             xpValueText.text = $"{playerStats.currentXP}/{playerStats.xpToNextLevel}";
-    }
-
-    void UpdateWaveText()
-    {
-    if (waveText == null) return;
-    if (waveManager == null) return;
-    waveText.text = $"Dalga: {waveManager.GetCurrentWave()}/{waveManager.GetTotalWaves()}";
     }
 
     void UpdateLevelText()
@@ -114,9 +118,9 @@ public class UIManager : MonoBehaviour
         if (bossHPPanel != null)
         {
             bossHPPanel.SetActive(true);
-            bossHPBar.maxValue = maxHP;
-            bossHPBar.value = maxHP;
-            bossNameText.text = bossName;
+            if (bossHPBar != null) bossHPBar.maxValue = maxHP;
+            if (bossHPBar != null) bossHPBar.value = maxHP;
+            if (bossNameText != null) bossNameText.text = bossName;
         }
     }
 

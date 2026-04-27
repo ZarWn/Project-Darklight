@@ -3,6 +3,8 @@ using UnityEngine.Events;
 
 public class PlayerStats : MonoBehaviour
 {
+    public static PlayerStats Instance;
+
     [Header("Temel İstatistikler")]
     public int maxHP = 100;
     public int currentHP;
@@ -22,24 +24,26 @@ public class PlayerStats : MonoBehaviour
     public UnityEvent onLevelUp;
     public UnityEvent onPlayerDeath;
 
-    
-    public static PlayerStats Instance;
+    private void Awake()
+    {
+        if (Instance == null)
+        {
+            Instance = this;
+            DontDestroyOnLoad(gameObject);
+        }
+        else
+        {
+            Destroy(gameObject);
+            return;
+        }
 
-private void Awake()
-{
-    if (Instance == null)
-    {
-        Instance = this;
-        DontDestroyOnLoad(gameObject);
+        currentHP = maxHP;
     }
-    else
-    {
-        Destroy(gameObject);
-    }
-}
+
     void Start()
     {
-        currentHP = maxHP;
+        if (currentHP <= 0)
+            currentHP = maxHP;
     }
 
     public void TakeDamage(int damage)
@@ -49,18 +53,31 @@ private void Awake()
         int finalDamage = Mathf.Max(1, damage - armor);
         currentHP -= finalDamage;
         currentHP = Mathf.Clamp(currentHP, 0, maxHP);
-        Debug.Log($"Oyuncu {finalDamage} hasar aldı! HP: {currentHP}/{maxHP}");
+        Debug.Log($"Oyuncu {finalDamage} hasar aldi! HP: {currentHP}/{maxHP}");
+
+        StartCoroutine(DamageFlash());
 
         if (currentHP <= 0)
-        {
             Die();
-        }
+    }
+
+    System.Collections.IEnumerator DamageFlash()
+    {
+        SpriteRenderer sr = GetComponent<SpriteRenderer>();
+        if (sr == null) yield break;
+
+        Color originalColor = sr.color;
+        sr.color = Color.white;
+        yield return new WaitForSeconds(0.1f);
+
+        if (sr != null)
+            sr.color = originalColor;
     }
 
     public void GainXP(int amount)
     {
         currentXP += amount;
-        Debug.Log($"XP Kazanıldı: +{amount} | Toplam: {currentXP}/{xpToNextLevel}");
+        Debug.Log($"XP Kazanildi: +{amount} | Toplam: {currentXP}/{xpToNextLevel}");
 
         while (currentXP >= xpToNextLevel)
         {
@@ -72,7 +89,7 @@ private void Awake()
     public void GainGold(int amount)
     {
         gold += amount;
-        Debug.Log($"Altin Kazanıldı: +{amount} | Toplam: {gold}");
+        Debug.Log($"Altin Kazanildi: +{amount} | Toplam: {gold}");
     }
 
     public bool SpendGold(int amount)
@@ -80,7 +97,7 @@ private void Awake()
         if (gold >= amount)
         {
             gold -= amount;
-            Debug.Log($"Altin Harcandı: -{amount} | Kalan: {gold}");
+            Debug.Log($"Altin Harcandi: -{amount} | Kalan: {gold}");
             return true;
         }
         Debug.Log("Yeterli altin yok!");
@@ -101,9 +118,7 @@ private void Awake()
 
         LevelUpManager levelUpManager = FindFirstObjectByType<LevelUpManager>();
         if (levelUpManager != null)
-        {
             levelUpManager.ShowLevelUpPanel();
-        }
     }
 
     void Die()
@@ -113,15 +128,11 @@ private void Awake()
 
         LevelUpManager levelUpManager = FindFirstObjectByType<LevelUpManager>();
         if (levelUpManager != null)
-        {
             levelUpManager.gameObject.SetActive(false);
-        }
 
         UIManager uiManager = FindFirstObjectByType<UIManager>();
         if (uiManager != null)
-        {
             uiManager.ShowGameOver();
-        }
 
         onPlayerDeath?.Invoke();
     }
@@ -138,13 +149,13 @@ private void Awake()
         maxHP += amount;
         currentHP += amount;
         currentHP = Mathf.Clamp(currentHP, 0, maxHP);
-        Debug.Log($"Max can arttı! Yeni Max HP: {maxHP}");
+        Debug.Log($"Max can artti! Yeni Max HP: {maxHP}");
     }
 
     public void IncreaseArmor(int amount)
     {
         armor += amount;
-        Debug.Log($"Zırh arttı! Yeni Zırh: {armor}");
+        Debug.Log($"Zirh artti! Yeni Zirh: {armor}");
     }
 
     public float GetHPPercent()

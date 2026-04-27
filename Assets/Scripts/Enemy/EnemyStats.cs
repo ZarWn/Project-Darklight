@@ -10,7 +10,10 @@ public class EnemyStats : MonoBehaviour
     public float moveSpeed = 2f;
     public int goldReward = 10;
 
-    private bool isDead = false;
+    public bool isDead = false;
+
+    [HideInInspector]
+    public bool isBleedingAlready = false;
 
     void Start()
     {

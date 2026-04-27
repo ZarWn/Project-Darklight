@@ -1,8 +1,9 @@
 using UnityEngine;
 
-
 public class PlayerController : MonoBehaviour
 {
+    public static PlayerController Instance;
+
     [Header("Saldırı Ayarları")]
     public float attackRange = 1f;
     public float attackCooldown = 0.5f;
@@ -14,59 +15,65 @@ public class PlayerController : MonoBehaviour
     private WeaponData currentWeapon;
     private PlayerStats playerStats;
 
-    
-    public static PlayerController Instance;
-
     private void Awake()
     {
-    if (Instance == null)
-    {
-        Instance = this;
-        DontDestroyOnLoad(gameObject);
+        if (Instance == null)
+        {
+            Instance = this;
+            DontDestroyOnLoad(gameObject);
+        }
+        else
+        {
+            Destroy(gameObject);
+            return;
+        }
     }
-    else
-    {
-        Destroy(gameObject);
-    }
-    }
+
     void Start()
     {
-    playerStats = GetComponent<PlayerStats>();
-    ApplyWeapon();
+        playerStats = GetComponent<PlayerStats>();
+        if (playerStats == null)
+            playerStats = FindFirstObjectByType<PlayerStats>();
+
+        enemyLayer = LayerMask.GetMask("Enemy");
+        ApplyWeapon();
     }
 
     void OnEnable()
     {
-    // Her sahne geçişinde silahı tekrar uygula
-    playerStats = GetComponent<PlayerStats>();
-    ApplyWeapon();
+        enemyLayer = LayerMask.GetMask("Enemy");
+        playerStats = GetComponent<PlayerStats>();
+        if (playerStats == null)
+            playerStats = FindFirstObjectByType<PlayerStats>();
     }
 
     void ApplyWeapon()
-{
-    // Enemy layer'ı her zaman ayarla
-    enemyLayer = LayerMask.GetMask("Enemy");
-
-    if (WeaponManager.Instance == null) return;
-
-    currentWeapon = WeaponManager.Instance.GetSelectedWeapon();
-    if (currentWeapon == null) return;
-
-    attackDamage = currentWeapon.damage;
-    attackCooldown = currentWeapon.attackSpeed;
-    attackRange = currentWeapon.range;
-
-    if (currentWeapon.weaponType == WeaponType.RuhTirpani)
     {
-        if (playerStats != null)
-        {
-            playerStats.maxHP -= currentWeapon.maxHPPenalty;
-            playerStats.currentHP = Mathf.Min(playerStats.currentHP, playerStats.maxHP);
-        }
-    }
+        enemyLayer = LayerMask.GetMask("Enemy");
 
-    Debug.Log($"Silah uygulandı: {currentWeapon.weaponName}");
-}
+        if (WeaponManager.Instance == null) return;
+
+        currentWeapon = WeaponManager.Instance.GetSelectedWeapon();
+        if (currentWeapon == null) return;
+
+        attackDamage = currentWeapon.damage;
+        attackCooldown = currentWeapon.attackSpeed;
+        attackRange = currentWeapon.range;
+
+        if (currentWeapon.weaponType == WeaponType.RuhTirpani)
+        {
+            if (playerStats != null)
+            {
+                playerStats.maxHP -= currentWeapon.maxHPPenalty;
+                playerStats.currentHP = Mathf.Min(
+                    playerStats.currentHP,
+                    playerStats.maxHP
+                );
+            }
+        }
+
+        Debug.Log($"Silah uygulandi: {currentWeapon.weaponName}");
+    }
 
     void Update()
     {
@@ -85,93 +92,33 @@ public class PlayerController : MonoBehaviour
             PerformAttack(1);
             PerformAttack(-1);
 
-            // Khaos Asası kendine hasar
-            if (currentWeapon != null && currentWeapon.weaponType == WeaponType.KhaosAsasi)
+            // Khaos Asası kendine hasar - sadece düşman varsa
+            if (currentWeapon != null &&
+                currentWeapon.weaponType == WeaponType.KhaosAsasi)
             {
-                playerStats.TakeDamage(currentWeapon.selfDamage);
+                // Etrafta düşman varsa kendine hasar ver
+                Collider2D[] nearbyEnemies = Physics2D.OverlapCircleAll(
+                    transform.position, attackRange, enemyLayer
+                );
+                if (nearbyEnemies.Length > 0 && playerStats != null)
+                    playerStats.TakeDamage(currentWeapon.selfDamage);
             }
         }
     }
 
     bool PerformAttack(int direction)
     {
-    if (currentWeapon != null && currentWeapon.aoeAttack)
-    {
-        return PerformAOEAttack();
-    }
+        if (currentWeapon != null && currentWeapon.aoeAttack)
+            return PerformAOEAttack();
 
-    // Rün Yayı: düşmandan geçen ok (raycast kullan)
-    if (currentWeapon != null && currentWeapon.piercingShot)
-    {
-        return PerformPiercingAttack(direction);
-    }
+        if (currentWeapon != null && currentWeapon.piercingShot)
+            return PerformPiercingAttack(direction);
 
-    Vector2 attackPoint = (Vector2)transform.position +
-                          Vector2.right * direction * attackRange;
+        Vector2 attackPoint = (Vector2)transform.position +
+                              Vector2.right * direction * attackRange;
 
-    Collider2D[] hitEnemies = Physics2D.OverlapCircleAll(
-        attackPoint,
-        0.5f,
-        enemyLayer
-    );
-
-    foreach (Collider2D enemy in hitEnemies)
-    {
-        EnemyStats enemyStats = enemy.GetComponent<EnemyStats>();
-        if (enemyStats != null)
-        {
-            int finalDamage = CalculateDamage();
-            enemyStats.TakeDamage(finalDamage);
-
-            if (currentWeapon != null && currentWeapon.lifeSteal > 0)
-            {
-                int healAmount = Mathf.RoundToInt(finalDamage * currentWeapon.lifeSteal);
-                playerStats.HealHP(healAmount);
-            }
-
-            if (currentWeapon != null && currentWeapon.applyBleed)
-            {
-                StartCoroutine(ApplyBleed(enemyStats));
-            }
-
-            Debug.Log($"Düşmana {finalDamage} hasar verildi!");
-        }
-    }
-
-    return hitEnemies.Length > 0;
-    }
-
-    bool PerformPiercingAttack(int direction)
-    {
-    // Tüm menzil boyunca raycast at
-    RaycastHit2D[] hits = Physics2D.RaycastAll(
-        transform.position,
-        Vector2.right * direction,
-        attackRange,
-        enemyLayer
-    );
-
-    foreach (RaycastHit2D hit in hits)
-    {
-        EnemyStats enemyStats = hit.collider.GetComponent<EnemyStats>();
-        if (enemyStats != null)
-        {
-            int finalDamage = CalculateDamage();
-            enemyStats.TakeDamage(finalDamage);
-            Debug.Log($"Yay ile düşmana {finalDamage} hasar verildi!");
-        }
-    }
-
-    return hits.Length > 0;
-    }
-
-    bool PerformAOEAttack()
-    {
-        // Khaos Asası: tüm menzildeki düşmanlara vurur
         Collider2D[] hitEnemies = Physics2D.OverlapCircleAll(
-            transform.position,
-            attackRange,
-            enemyLayer
+            attackPoint, 0.5f, enemyLayer
         );
 
         foreach (Collider2D enemy in hitEnemies)
@@ -179,18 +126,71 @@ public class PlayerController : MonoBehaviour
             EnemyStats enemyStats = enemy.GetComponent<EnemyStats>();
             if (enemyStats != null)
             {
-                enemyStats.TakeDamage(CalculateDamage());
+                int finalDamage = CalculateDamage();
+                enemyStats.TakeDamage(finalDamage);
+
+                // Can çalma (Ruh Tırpanı)
+                if (currentWeapon != null && currentWeapon.lifeSteal > 0)
+                {
+                    int healAmount = Mathf.RoundToInt(
+                        finalDamage * currentWeapon.lifeSteal
+                    );
+                    if (playerStats != null)
+                        playerStats.HealHP(healAmount);
+                }
+
+                // Kanama (Kan Mızrağı)
+                 if (currentWeapon != null && currentWeapon.applyBleed && !enemyStats.isBleedingAlready)
+                StartCoroutine(ApplyBleed(enemyStats));
             }
         }
 
         return hitEnemies.Length > 0;
     }
 
+    bool PerformAOEAttack()
+    {
+        Collider2D[] hitEnemies = Physics2D.OverlapCircleAll(
+            transform.position, attackRange, enemyLayer
+        );
+
+        foreach (Collider2D enemy in hitEnemies)
+        {
+            EnemyStats enemyStats = enemy.GetComponent<EnemyStats>();
+            if (enemyStats != null)
+                enemyStats.TakeDamage(CalculateDamage());
+        }
+
+        return hitEnemies.Length > 0;
+    }
+
+    bool PerformPiercingAttack(int direction)
+    {
+        RaycastHit2D[] hits = Physics2D.RaycastAll(
+            transform.position,
+            Vector2.right * direction,
+            attackRange,
+            enemyLayer
+        );
+
+        foreach (RaycastHit2D hit in hits)
+        {
+            EnemyStats enemyStats = hit.collider.GetComponent<EnemyStats>();
+            if (enemyStats != null)
+            {
+                int finalDamage = CalculateDamage();
+                enemyStats.TakeDamage(finalDamage);
+                Debug.Log($"Yay ile düşmana {finalDamage} hasar verildi!");
+            }
+        }
+
+        return hits.Length > 0;
+    }
+
     int CalculateDamage()
     {
         int damage = attackDamage;
 
-        // Kritik hasar (Gece Bıçağı)
         if (currentWeapon != null && currentWeapon.critEvery > 0)
         {
             if (hitCount % currentWeapon.critEvery == 0)
@@ -204,52 +204,64 @@ public class PlayerController : MonoBehaviour
     }
 
     System.Collections.IEnumerator ApplyBleed(EnemyStats enemy)
+{
+    if (enemy == null) yield break;
+    if (enemy.isDead) yield break;
+    if (enemy.isBleedingAlready) yield break;
+
+    enemy.isBleedingAlready = true;
+    float elapsed = 0f;
+
+    while (elapsed < currentWeapon.bleedDuration)
     {
-        float elapsed = 0f;
-        while (elapsed < currentWeapon.bleedDuration && enemy != null)
+        yield return new WaitForSeconds(1f);
+        elapsed += 1f;
+
+        // Düşman öldüyse dur
+        if (enemy == null || enemy.isDead)
         {
-            yield return new WaitForSeconds(1f);
-            elapsed += 1f;
-
-            if (enemy != null)
-            {
-                enemy.TakeDamage(currentWeapon.bleedDamage);
-
-                // Kendine kanama hasarı
-                playerStats.TakeDamage(currentWeapon.bleedSelfDamage);
-            }
+            yield break;
         }
+
+        enemy.TakeDamage(currentWeapon.bleedDamage);
+
+        // Kendine çok az hasar ver
+        if (playerStats != null)
+            playerStats.TakeDamage(currentWeapon.bleedSelfDamage);
     }
 
-    // Yetenek sistemi metodları
+    if (enemy != null)
+        enemy.isBleedingAlready = false;
+}
+
     public void IncreaseAttackSpeed(float amount)
     {
         attackCooldown = Mathf.Max(0.1f, attackCooldown - amount);
-        Debug.Log($"Saldırı hızı arttı! Yeni cooldown: {attackCooldown}");
+        Debug.Log($"Saldiri hizi artti! Yeni cooldown: {attackCooldown}");
     }
 
     public void IncreaseAttackDamage(int amount)
     {
         attackDamage += amount;
-        Debug.Log($"Saldırı hasarı arttı! Yeni hasar: {attackDamage}");
+        Debug.Log($"Saldiri hasari artti! Yeni hasar: {attackDamage}");
     }
 
     public void IncreaseAttackRange(float amount)
     {
         attackRange += amount;
-        Debug.Log($"Saldırı menzili arttı! Yeni menzil: {attackRange}");
+        Debug.Log($"Saldiri menzili artti! Yeni menzil: {attackRange}");
     }
 
     public void IncreaseFireDamage(int amount)
     {
         attackDamage += amount;
-        Debug.Log($"Ateş hasarı eklendi! Yeni hasar: {attackDamage}");
+        Debug.Log($"Ates hasari eklendi! Yeni hasar: {attackDamage}");
     }
 
     public void ActivateSuperSpeed()
     {
         attackCooldown = Mathf.Max(0.1f, attackCooldown - 0.2f);
-        Debug.Log($"Süper hız aktif! Yeni cooldown: {attackCooldown}");
+        Debug.Log($"Super hiz aktif! Yeni cooldown: {attackCooldown}");
     }
 
     void OnDrawGizmosSelected()
