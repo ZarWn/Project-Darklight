@@ -171,11 +171,14 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: f34ea0e94783e1e409bee019962b72b4, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::EnemyStats
-  maxHP: 30
+  maxHP: 10
   currentHP: 0
   damage: 10
   xpReward: 20
   moveSpeed: 2
+  goldReward: 10
+  isDead: 0
+  isBleedingAlready: 0
 --- !u!114 &3142817586697638561
 MonoBehaviour:
   m_ObjectHideFlags: 0
