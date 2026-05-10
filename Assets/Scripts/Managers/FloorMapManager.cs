@@ -3,6 +3,20 @@ using UnityEngine.UI;
 using TMPro;
 using System.Collections.Generic;
 
+public class MapNode
+{
+    public int floor;
+    public int index;
+    public FloorManager.FloorType type;
+    public Vector2 position;
+    
+    public List<MapNode> nextNodes = new List<MapNode>(); 
+    
+    public GameObject gameObject;
+    public Image backgroundImage;
+    public Button button;
+}
+
 public class FloorMapManager : MonoBehaviour
 {
     [Header("Map Ayarları")]
@@ -25,13 +39,15 @@ public class FloorMapManager : MonoBehaviour
     public float horizontalSpacing = 250f;
     public float bottomPadding = 100f;
 
-    private List<List<GameObject>> nodeObjects = new List<List<GameObject>>();
+    private List<List<MapNode>> allNodes = new List<List<MapNode>>();
     private FloorManager floorManager;
     private ScrollRect scrollRect;
 
     void Start()
     {
         floorManager = FloorManager.Instance;
+        
+        // Güvenlik Kontrolü
         if (floorManager == null)
         {
             GameObject fm = new GameObject("FloorManager");
@@ -43,74 +59,109 @@ public class FloorMapManager : MonoBehaviour
         if (scrollRect == null)
             scrollRect = FindFirstObjectByType<ScrollRect>();
 
-        GenerateMap();
+        GenerateGraph();
+        DrawGraph();
 
-        // En alta scroll et (başlangıç noktası altta)
         Canvas.ForceUpdateCanvases();
         if (scrollRect != null)
             scrollRect.verticalNormalizedPosition = 0f;
     }
 
-    void GenerateMap()
+    void GenerateGraph()
     {
-        foreach (Transform child in mapContent)
-            Destroy(child.gameObject);
-        nodeObjects.Clear();
-
+        allNodes.Clear();
         int totalFloors = floorManager.GetTotalFloors();
 
-        // Content yüksekliğini ayarla
-        float totalHeight = totalFloors * floorHeight + bottomPadding * 2;
-        mapContent.sizeDelta = new Vector2(mapContent.sizeDelta.x, totalHeight);
-
-        // Önce çizgileri oluştur (arkada kalsın)
-        List<List<Vector2>> positions = new List<List<Vector2>>();
-
+        // A) Düğümleri üret
         for (int floor = 0; floor < totalFloors; floor++)
         {
             List<FloorManager.FloorType> options = floorManager.GetFloorOptions(floor);
-            List<Vector2> floorPositions = new List<Vector2>();
-
+            List<MapNode> floorNodes = new List<MapNode>();
+            
             float yPos = bottomPadding + floor * floorHeight;
 
             for (int i = 0; i < options.Count; i++)
             {
                 float xPos = GetXPosition(i, options.Count);
-                floorPositions.Add(new Vector2(xPos, yPos));
+                MapNode newNode = new MapNode
+                {
+                    floor = floor, index = i, type = options[i], position = new Vector2(xPos, yPos)
+                };
+                floorNodes.Add(newNode);
             }
-
-            positions.Add(floorPositions);
+            allNodes.Add(floorNodes);
         }
 
-        // Çizgileri çiz (önce, arkada kalsın)
-        for (int floor = 1; floor < totalFloors; floor++)
+        // B) Düğümleri RASTGELE Birbirine Bağla
+        for (int floor = 0; floor < totalFloors - 1; floor++)
         {
-            foreach (Vector2 currentPos in positions[floor])
+            List<MapNode> currFloor = allNodes[floor];
+            List<MapNode> nextFloor = allNodes[floor + 1];
+
+            // Eğer sonraki kat Final Boss ise (tek düğüm), hepsi ona bağlanır
+            if (nextFloor.Count == 1)
             {
-                foreach (Vector2 prevPos in positions[floor - 1])
+                foreach (var node in currFloor) 
+                    if (!node.nextNodes.Contains(nextFloor[0])) 
+                        node.nextNodes.Add(nextFloor[0]);
+                continue;
+            }
+
+            // Kural 1: Üst kattaki HER odanın, alt katta rastgele BİR atası (bağlantısı) olmak zorunda
+            foreach (var nextNode in nextFloor)
+            {
+                MapNode randomParent = currFloor[Random.Range(0, currFloor.Count)];
+                if (!randomParent.nextNodes.Contains(nextNode))
+                    randomParent.nextNodes.Add(nextNode);
+            }
+
+            // Kural 2: Alt kattaki HER odanın, üst katta rastgele BİR hedefi olmak zorunda (çıkmaz sokak kalmasın)
+            foreach (var currNode in currFloor)
+            {
+                if (currNode.nextNodes.Count == 0)
                 {
-                    DrawLine(prevPos, currentPos);
+                    MapNode randomTarget = nextFloor[Random.Range(0, nextFloor.Count)];
+                    currNode.nextNodes.Add(randomTarget);
+                }
+                
+                // Kural 3: Biraz daha organik durması için %40 ihtimalle ekstra rastgele bir bağlantı daha at
+                if (Random.value > 0.6f)
+                {
+                    MapNode randomTarget = nextFloor[Random.Range(0, nextFloor.Count)];
+                    if (!currNode.nextNodes.Contains(randomTarget))
+                        currNode.nextNodes.Add(randomTarget);
+                }
+            }
+        }
+    }
+
+    void DrawGraph()
+    {
+        foreach (Transform child in mapContent) Destroy(child.gameObject);
+
+        int totalFloors = allNodes.Count;
+        float totalHeight = totalFloors * floorHeight + bottomPadding * 2;
+        mapContent.sizeDelta = new Vector2(mapContent.sizeDelta.x, totalHeight);
+
+        // Çizgileri Çiz
+        foreach (var floorList in allNodes)
+        {
+            foreach (var node in floorList)
+            {
+                foreach (var targetNode in node.nextNodes)
+                {
+                    DrawLine(node.position, targetNode.position);
                 }
             }
         }
 
-        // Düğümleri oluştur (çizgilerin üstünde)
-        for (int floor = 0; floor < totalFloors; floor++)
+        // Düğümleri Çiz
+        foreach (var floorList in allNodes)
         {
-            List<FloorManager.FloorType> options = floorManager.GetFloorOptions(floor);
-            List<GameObject> floorNodes = new List<GameObject>();
-
-            for (int i = 0; i < options.Count; i++)
+            foreach (var node in floorList)
             {
-                GameObject node = CreateNode(
-                    options[i],
-                    positions[floor][i],
-                    floor
-                );
-                floorNodes.Add(node);
+                CreateNodeUI(node);
             }
-
-            nodeObjects.Add(floorNodes);
         }
 
         UpdateNodeStates();
@@ -119,63 +170,55 @@ public class FloorMapManager : MonoBehaviour
     float GetXPosition(int index, int total)
     {
         if (total == 1) return 0f;
-        if (total == 2)
-            return index == 0 ? -horizontalSpacing / 2 : horizontalSpacing / 2;
-        return (index - 1) * horizontalSpacing;
+        if (total == 2) return index == 0 ? -horizontalSpacing / 2 : horizontalSpacing / 2;
+        return (index - 1) * horizontalSpacing; 
     }
 
-    GameObject CreateNode(FloorManager.FloorType floorType, Vector2 position, int floor)
+    void CreateNodeUI(MapNode node)
     {
-        GameObject node = new GameObject($"Node_Floor{floor}_{floorType}");
-        node.transform.SetParent(mapContent, false);
+        GameObject obj = new GameObject($"Node_Floor{node.floor}_{node.type}");
+        obj.transform.SetParent(mapContent, false);
 
-        RectTransform rect = node.AddComponent<RectTransform>();
-        rect.anchorMin = new Vector2(0.5f, 0f);
-        rect.anchorMax = new Vector2(0.5f, 0f);
+        RectTransform rect = obj.AddComponent<RectTransform>();
+        rect.anchorMin = new Vector2(0.5f, 0f); rect.anchorMax = new Vector2(0.5f, 0f);
         rect.pivot = new Vector2(0.5f, 0.5f);
         rect.sizeDelta = new Vector2(nodeSize, nodeSize);
-        rect.anchoredPosition = position;
+        rect.anchoredPosition = node.position;
 
-        Image bg = node.AddComponent<Image>();
-        bg.color = GetNodeColor(floorType);
+        Image bg = obj.AddComponent<Image>();
+        bg.color = GetNodeColor(node.type);
 
-        Button button = node.AddComponent<Button>();
-        int capturedFloor = floor;
-        FloorManager.FloorType capturedType = floorType;
-        button.onClick.AddListener(() => OnNodeClicked(capturedFloor, capturedType));
+        Button btn = obj.AddComponent<Button>();
+        btn.onClick.AddListener(() => OnNodeClicked(node));
 
-        // İkon text
-        GameObject textObj = new GameObject("NodeText");
-        textObj.transform.SetParent(node.transform, false);
+        GameObject textObj = new GameObject("IconText");
+        textObj.transform.SetParent(obj.transform, false);
         RectTransform textRect = textObj.AddComponent<RectTransform>();
-        textRect.anchorMin = Vector2.zero;
-        textRect.anchorMax = Vector2.one;
-        textRect.sizeDelta = Vector2.zero;
-        textRect.anchoredPosition = Vector2.zero;
+        textRect.anchorMin = Vector2.zero; textRect.anchorMax = Vector2.one;
+        textRect.sizeDelta = Vector2.zero; textRect.anchoredPosition = Vector2.zero;
 
         TextMeshProUGUI text = textObj.AddComponent<TextMeshProUGUI>();
-        text.text = GetNodeIcon(floorType);
+        text.text = GetNodeIcon(node.type);
         text.fontSize = 16;
         text.alignment = TextAlignmentOptions.Center;
         text.color = Color.white;
 
-        // Kat numarası text
         GameObject floorTextObj = new GameObject("FloorText");
-        floorTextObj.transform.SetParent(node.transform, false);
+        floorTextObj.transform.SetParent(obj.transform, false);
         RectTransform floorTextRect = floorTextObj.AddComponent<RectTransform>();
-        floorTextRect.anchorMin = new Vector2(0f, 0f);
-        floorTextRect.anchorMax = new Vector2(1f, 0f);
-        floorTextRect.pivot = new Vector2(0.5f, 1f);
-        floorTextRect.sizeDelta = new Vector2(0, 25);
+        floorTextRect.anchorMin = new Vector2(0, 0); floorTextRect.anchorMax = new Vector2(1, 0);
+        floorTextRect.pivot = new Vector2(0.5f, 1f); floorTextRect.sizeDelta = new Vector2(0, 25);
         floorTextRect.anchoredPosition = new Vector2(0, -5);
 
         TextMeshProUGUI floorText = floorTextObj.AddComponent<TextMeshProUGUI>();
-        floorText.text = $"Kat {floor + 1}";
+        floorText.text = $"Kat {node.floor + 1}";
         floorText.fontSize = 12;
         floorText.alignment = TextAlignmentOptions.Center;
         floorText.color = Color.white;
 
-        return node;
+        node.gameObject = obj;
+        node.backgroundImage = bg;
+        node.button = btn;
     }
 
     void DrawLine(Vector2 start, Vector2 end)
@@ -192,8 +235,7 @@ public class FloorMapManager : MonoBehaviour
         float distance = dir.magnitude;
         float angle = Mathf.Atan2(dir.y, dir.x) * Mathf.Rad2Deg;
 
-        rect.anchorMin = new Vector2(0.5f, 0f);
-        rect.anchorMax = new Vector2(0.5f, 0f);
+        rect.anchorMin = new Vector2(0.5f, 0f); rect.anchorMax = new Vector2(0.5f, 0f);
         rect.pivot = new Vector2(0.5f, 0.5f);
         rect.sizeDelta = new Vector2(distance, 4f);
         rect.anchoredPosition = start + dir / 2f;
@@ -203,33 +245,60 @@ public class FloorMapManager : MonoBehaviour
     void UpdateNodeStates()
     {
         int currentFloor = floorManager.currentFloor;
+        int prevIndex = floorManager.currentNodeIndex;
 
-        for (int floor = 0; floor < nodeObjects.Count; floor++)
+        foreach (var floorList in allNodes)
         {
-            foreach (GameObject node in nodeObjects[floor])
+            foreach (var node in floorList)
             {
-                Image bg = node.GetComponent<Image>();
-                Button button = node.GetComponent<Button>();
-
-                if (floor < currentFloor)
+                if (node.floor < currentFloor)
                 {
-                    bg.color = completedColor;
-                    button.interactable = false;
+                    node.backgroundImage.color = completedColor;
+                    node.button.interactable = false;
                 }
-                else if (floor == currentFloor)
+                else if (node.floor == currentFloor)
                 {
-                    button.interactable = true;
+                    bool isInteractable = false;
 
-                    Outline outline = node.AddComponent<Outline>();
-                    outline.effectColor = currentColor;
-                    outline.effectDistance = new Vector2(4, 4);
+                    if (currentFloor == 0 || prevIndex == -1)
+                    {
+                        isInteractable = true; 
+                    }
+                    else
+                    {
+                        MapNode prevNode = allNodes[currentFloor - 1][prevIndex];
+                        if (prevNode.nextNodes.Contains(node))
+                        {
+                            isInteractable = true;
+                        }
+                    }
+
+                    node.button.interactable = isInteractable;
+
+                    if (isInteractable)
+                    {
+                        node.backgroundImage.color = GetNodeColor(node.type);
+                        Outline outline = node.gameObject.GetComponent<Outline>();
+                        if (outline == null) outline = node.gameObject.AddComponent<Outline>();
+                        outline.effectColor = currentColor;
+                        outline.effectDistance = new Vector2(4, 4);
+                    }
+                    else
+                    {
+                        Color c = GetNodeColor(node.type);
+                        c.a = 0.3f;
+                        node.backgroundImage.color = c;
+                        
+                        Outline outline = node.gameObject.GetComponent<Outline>();
+                        if (outline != null) Destroy(outline);
+                    }
                 }
                 else
                 {
-                    button.interactable = false;
-                    Color c = bg.color;
+                    node.button.interactable = false;
+                    Color c = GetNodeColor(node.type);
                     c.a = 0.3f;
-                    bg.color = c;
+                    node.backgroundImage.color = c;
                 }
             }
         }
@@ -265,10 +334,9 @@ public class FloorMapManager : MonoBehaviour
         }
     }
 
-    void OnNodeClicked(int floor, FloorManager.FloorType floorType)
+    void OnNodeClicked(MapNode node)
     {
-        if (floor != floorManager.currentFloor) return;
-        Debug.Log($"Kat {floor + 1} seçildi: {floorType}");
-        floorManager.SelectFloor(floorType);
+        if (node.floor != floorManager.currentFloor) return;
+        floorManager.SelectFloor(node.type, node.index);
     }
 }

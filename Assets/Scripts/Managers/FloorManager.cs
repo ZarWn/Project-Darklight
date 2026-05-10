@@ -8,38 +8,17 @@ public class FloorManager : MonoBehaviour
     [Header("Kat Ayarları")]
     public int currentFloor = 0;
     public int totalFloors = 16;
+    public int currentNodeIndex = -1;
 
     public enum FloorType
     {
-        Savas,
-        Elite,
-        Shop,
-        Hazine,
-        Dinlenme,
-        Boss,
-        FinalBoss
+        Savas, Elite, Shop, Hazine, Dinlenme, Boss, FinalBoss
     }
 
-    private List<int> bossFloors = new List<int> { 15 }; // Sadece son kat boss
     private int finalBossFloor = 15;
 
     private int[] optionsPerFloor = {
-        2, // Kat 1
-        2, // Kat 2
-        3, // Kat 3
-        2, // Kat 4
-        3, // Kat 5
-        2, // Kat 6
-        3, // Kat 7
-        2, // Kat 8
-        3, // Kat 9
-        2, // Kat 10
-        3, // Kat 11
-        2, // Kat 12
-        3, // Kat 13
-        2, // Kat 14
-        3, // Kat 15
-        1, // Kat 16 - FINAL BOSS
+        2, 2, 3, 2, 3, 2, 3, 2, 3, 2, 3, 2, 3, 2, 3, 1
     };
 
     private List<List<FloorType>> floorMap = new List<List<FloorType>>();
@@ -54,6 +33,7 @@ public class FloorManager : MonoBehaviour
         else
         {
             Destroy(gameObject);
+            return;
         }
 
         GenerateRandomMap();
@@ -80,74 +60,75 @@ public class FloorManager : MonoBehaviour
             floorMap.Add(floorOptions);
         }
 
-        Debug.Log("Harita olusturuldu!");
+        Debug.Log("Dengeli ve Rastgele Harita olusturuldu!");
     }
 
     List<FloorType> GenerateRandomOptions(int count, int floorIndex)
-{
-    List<FloorType> options = new List<FloorType>();
-    List<FloorType> lastFloorTypes = new List<FloorType>();
-
-    if (floorIndex > 0 && floorMap.Count > floorIndex - 1)
-        lastFloorTypes = floorMap[floorIndex - 1];
-
-    List<FloorType> weightedTypes = new List<FloorType>();
-
-    // İlk 2 katta sadece savaş olsun
-    if (floorIndex < 2)
     {
-        for (int i = 0; i < count; i++)
-            options.Add(FloorType.Savas);
-        return options;
-    }
+        List<FloorType> options = new List<FloorType>();
+        List<FloorType> lastFloorTypes = new List<FloorType>();
 
-    // Savaş her zaman çıkabilir
-    weightedTypes.Add(FloorType.Savas);
-    weightedTypes.Add(FloorType.Savas); // Savaş daha sık çıksın
+        if (floorIndex > 0 && floorMap.Count > floorIndex - 1)
+            lastFloorTypes = floorMap[floorIndex - 1];
 
-    // Elite sadece 4. kattan sonra
-    if (floorIndex >= 3)
-        weightedTypes.Add(FloorType.Elite);
+        // TEMPO KONTROLÜ: Bir önceki katta barışçıl (aksiyonsuz) bir oda var mıydı?
+        bool hadPeacefulRoom = lastFloorTypes.Contains(FloorType.Shop) || 
+                               lastFloorTypes.Contains(FloorType.Hazine) || 
+                               lastFloorTypes.Contains(FloorType.Dinlenme);
 
-    // Shop her 4 katta bir çıkabilir
-    if (floorIndex % 4 == 0)
-        weightedTypes.Add(FloorType.Shop);
+        List<FloorType> weightedTypes = new List<FloorType>();
 
-    // Hazine her 5 katta bir çıkabilir
-    if (floorIndex % 5 == 0)
-        weightedTypes.Add(FloorType.Hazine);
-
-    // Dinlenme her 4 katta bir çıkabilir
-    if (floorIndex % 4 == 2)
-        weightedTypes.Add(FloorType.Dinlenme);
-
-    // Liste yetmezse savaş ekle
-    while (weightedTypes.Count < count)
-        weightedTypes.Add(FloorType.Savas);
-
-    List<FloorType> usedTypes = new List<FloorType>();
-
-    for (int i = 0; i < count; i++)
-    {
-        List<FloorType> available = new List<FloorType>();
-
-        foreach (FloorType type in weightedTypes)
+        // İlk 2 katta sadece savaş
+        if (floorIndex < 2)
         {
-            if (!usedTypes.Contains(type) && !lastFloorTypes.Contains(type))
-                available.Add(type);
+            for (int i = 0; i < count; i++) options.Add(FloorType.Savas);
+            return options;
         }
 
-        if (available.Count == 0)
-            available.Add(FloorType.Savas);
+        // Savaş her zaman havuzda olmalı
+        weightedTypes.Add(FloorType.Savas);
+        weightedTypes.Add(FloorType.Savas);
 
-        int randomIndex = Random.Range(0, available.Count);
-        FloorType selected = available[randomIndex];
-        options.Add(selected);
-        usedTypes.Add(selected);
+        // Elite odalar 3. kattan sonra eklenebilir
+        if (floorIndex >= 3)
+            weightedTypes.Add(FloorType.Elite);
+
+        // EĞER BİR ÖNCEKİ KATTA BARIŞÇIL ODA YOKSA, BUNLARI HAVUZA EKLE:
+        if (!hadPeacefulRoom)
+        {
+            if (floorIndex % 3 == 0) weightedTypes.Add(FloorType.Shop);
+            if (floorIndex % 4 == 0) weightedTypes.Add(FloorType.Hazine);
+            if (floorIndex % 3 == 2) weightedTypes.Add(FloorType.Dinlenme);
+        }
+
+        // Eğer havuz yetersizse savaşla doldur
+        while (weightedTypes.Count < count)
+            weightedTypes.Add(FloorType.Savas);
+
+        List<FloorType> usedTypes = new List<FloorType>();
+
+        for (int i = 0; i < count; i++)
+        {
+            List<FloorType> available = new List<FloorType>();
+
+            foreach (FloorType type in weightedTypes)
+            {
+                // Aynı katta aynı odadan 2 tane olmasını engelle (Çifte market vs olmasın)
+                if (!usedTypes.Contains(type))
+                    available.Add(type);
+            }
+
+            if (available.Count == 0)
+                available.Add(FloorType.Savas);
+
+            int randomIndex = Random.Range(0, available.Count);
+            FloorType selected = available[randomIndex];
+            options.Add(selected);
+            usedTypes.Add(selected);
+        }
+
+        return options;
     }
-
-    return options;
-}
 
     public List<FloorType> GetFloorOptions(int floorIndex)
     {
@@ -156,15 +137,13 @@ public class FloorManager : MonoBehaviour
         return new List<FloorType> { FloorType.FinalBoss };
     }
 
-    public List<FloorType> GetCurrentFloorOptions()
-    {
-        return GetFloorOptions(currentFloor);
-    }
+    public List<FloorType> GetCurrentFloorOptions() => GetFloorOptions(currentFloor);
 
-    public void SelectFloor(FloorType floorType)
+    public void SelectFloor(FloorType floorType, int nodeIndex)
     {
         currentFloor++;
-        Debug.Log($"Kat {currentFloor} secildi: {floorType}");
+        currentNodeIndex = nodeIndex; 
+        Debug.Log($"Kat {currentFloor} secildi: {floorType}, Yol İndeksi: {nodeIndex}");
         LoadFloor(floorType);
     }
 
@@ -197,55 +176,10 @@ public class FloorManager : MonoBehaviour
     }
 
     public int GetTotalFloors() => totalFloors;
-
-    public bool IsCurrentFloorElite()
-    {
-        var options = GetCurrentFloorOptions();
-        return options.Count == 1 && options[0] == FloorType.Elite;
-    }
-
-    public bool IsCurrentFloorBoss()
-    {
-        var options = GetCurrentFloorOptions();
-        return options.Count == 1 &&
-               (options[0] == FloorType.Boss || options[0] == FloorType.FinalBoss);
-    }
-
-    public int GetWavesForCurrentFloor()
-    {
-        if (currentFloor <= 3) return 3;
-        if (currentFloor <= 6) return 4;
-        if (currentFloor <= 10) return 5;
-        return 6;
-    }
-
-    public float GetEnemyHPMultiplier()
-    {
-        return 1f + (currentFloor * 0.15f);
-    }
-
-    public float GetEnemySpeedMultiplier()
-    {
-        return 1f + (currentFloor * 0.05f);
-    }
-
-    public int GetEnemyCountBonus()
-    {
-        return currentFloor / 3;
-    }
-
-    public string GetFloorTypeName(FloorType floorType)
-    {
-        switch (floorType)
-        {
-            case FloorType.Savas: return "Savas";
-            case FloorType.Elite: return "Elite";
-            case FloorType.Shop: return "Market";
-            case FloorType.Hazine: return "Hazine";
-            case FloorType.Dinlenme: return "Dinlenme";
-            case FloorType.Boss: return "Boss";
-            case FloorType.FinalBoss: return "Final Boss";
-            default: return "Bilinmeyen";
-        }
-    }
+    public bool IsCurrentFloorElite() { var opt = GetCurrentFloorOptions(); return opt.Count == 1 && opt[0] == FloorType.Elite; }
+    public bool IsCurrentFloorBoss() { var opt = GetCurrentFloorOptions(); return opt.Count == 1 && (opt[0] == FloorType.Boss || opt[0] == FloorType.FinalBoss); }
+    public int GetWavesForCurrentFloor() { if (currentFloor <= 3) return 3; if (currentFloor <= 6) return 4; if (currentFloor <= 10) return 5; return 6; }
+    public float GetEnemyHPMultiplier() => 1f + (currentFloor * 0.15f);
+    public float GetEnemySpeedMultiplier() => 1f + (currentFloor * 0.05f);
+    public int GetEnemyCountBonus() => currentFloor / 3;
 }
