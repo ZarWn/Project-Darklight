@@ -1,4 +1,4 @@
-# 🎮 Wave Crusher
+# Wave Crusher
 
 Wave Crusher, Unity 6 ile geliştirilmiş 2D mobil aksiyon türünde bir oyundur.
 Oyuncu ekranın ortasında sabit duran bir karakteri yönetir. Karakter otomatik 
@@ -6,13 +6,13 @@ olarak sağa ve sola saldırır. Düşmanlar dalgalar halinde sağdan ve soldan 
 Oyuncu düşman öldürerek XP kazanır, seviye atlar ve yeni yetenekler seçer. 
 Son dalgada Boss düşmanını öldürerek bölümü tamamlar.
 
-## 📱 Platform
+## Platform
 - Geliştirme: PC (Windows)
 - Hedef Platform: Android
 - Geliştirme Motoru: Unity 6 (6000.3.9f1)
 - Programlama Dili: C#
 
-## 🎯 Oyun Özellikleri
+## Oyun Özellikleri
 - Otomatik saldırı sistemi
 - Dalga dalga gelen düşmanlar
 - Her dalgada güçlenen düşmanlar
@@ -24,7 +24,7 @@ Son dalgada Boss düşmanını öldürerek bölümü tamamlar.
 - Zırh sistemi
 - Ana menü ve Game Over ekranı
 
-## 🛠️ Kullanılan Teknolojiler
+## Kullanılan Teknolojiler
 - Unity 6 (6000.3.9f1)
 - C#
 - Unity Input System
@@ -32,7 +32,7 @@ Son dalgada Boss düşmanını öldürerek bölümü tamamlar.
 - Unity SceneManagement
 
 <pre>
-- ## 📥 Kurulum ve Çalıştırma
+- ## Kurulum ve Çalıştırma
 
 1. Bu repoyu bilgisayarınıza klonlayın: git clone https://github.com/kullaniciadi/wavecrusher.git
 2. Unity Hub'ı açın.
@@ -42,7 +42,7 @@ Son dalgada Boss düşmanını öldürerek bölümü tamamlar.
 6. Assets/Scenes klasöründen "MainMenu" sahnesini açın.
 7. Unity editöründe Play butonuna basarak oyunu çalıştırın.
 
-## 📁 Proje Klasör Yapısı
+## Proje Klasör Yapısı
 Assets/
 ├── Prefabs/
 │ ├── Enemy.prefab
@@ -69,7 +69,7 @@ Assets/
 └── UIManager.cs </pre>
 
 
-## 🎮 Oyun Nasıl Oynanır
+## Oyun Nasıl Oynanır
 
 1. Ana menüden Oyna butonuna bas.
 2. Oyun başladığında karakter ekranın ortasına yerleşir.
@@ -82,7 +82,7 @@ Assets/
 9. Boss öldürülünce bir sonraki stage'e geçilir.
 10. 3 bölge ve 9 stage tamamlanınca oyun biter.
 
-## 📜 Scriptlerin Detaylı Açıklaması
+## Scriptlerin Detaylı Açıklaması
 
 ### 1. PlayerController.cs
 Karakterin otomatik saldırı sistemini yönetir. Player objesine eklenir.
@@ -580,7 +580,7 @@ public void ShowBossWarning()
 ```
 
 <pre>
-    ## 🖥️ UI Elemanları
+    ## UI Elemanları
 
 ### GameScene UI Yapısı:
 ```
@@ -630,7 +630,7 @@ Canvas
     └── QuitButton
 ```
 
-## ⚙️ Inspector Ayarları
+## Inspector Ayarları
 
 ### Player Objesi:
 ```
@@ -724,7 +724,7 @@ Bileşenler:
   - Waves Per Stage: [5, 6, 7]
 ```
 
-## 🗺️ Sahne Yapısı
+## Sahne Yapısı
 
 ### Build Settings Sıralaması:
 ```
