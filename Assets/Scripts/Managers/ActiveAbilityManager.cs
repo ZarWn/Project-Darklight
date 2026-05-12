@@ -1,14 +1,10 @@
 using UnityEngine;
 using System.Collections;
+using UnityEngine.SceneManagement; // SAHNE GEÇİŞLERİNİ ANLAMAK İÇİN EKLENDİ
 
 public class ActiveAbilityManager : MonoBehaviour
 {
     public static ActiveAbilityManager Instance;
-
-    [Header("Enerji Sistemi")]
-    public float maxEnergy = 100f;
-    public float currentEnergy = 100f;
-    public float energyRegenRate = 10f; // saniyede 10 enerji
 
     [Header("Yetenek Slotları")]
     private ActiveAbility[] abilities = new ActiveAbility[4];
@@ -18,98 +14,86 @@ public class ActiveAbilityManager : MonoBehaviour
     private PlayerStats playerStats;
     private PlayerController playerController;
 
-    // Events
     public delegate void OnAbilityCast(int slot);
     public static event OnAbilityCast onAbilityCast;
-
-    public delegate void OnEnergyChanged(float current, float max);
-    public static event OnEnergyChanged onEnergyChanged;
 
     public delegate void OnCooldownChanged(int slot, float remaining, float total);
     public static event OnCooldownChanged onCooldownChanged;
 
     private void Awake()
     {
-        if (Instance == null)
-        {
-            Instance = this;
-            DontDestroyOnLoad(gameObject);
-        }
-        else
+        if (Instance != null && Instance != this)
         {
             Destroy(gameObject);
             return;
         }
 
+        Instance = this;
+        transform.SetParent(null); 
+        DontDestroyOnLoad(gameObject);
+        
         InitializeAbilities();
     }
 
-    void Start()
+    // YENİ: Sahne (Stage) değişimlerini dinlemeye başla
+    private void OnEnable()
     {
+        SceneManager.sceneLoaded += OnSceneLoaded;
+    }
+
+    private void OnDisable()
+    {
+        SceneManager.sceneLoaded -= OnSceneLoaded;
+    }
+
+    // YENİ: Yeni sahne yüklendiğinde otomatik çalışır
+    private void OnSceneLoaded(Scene scene, LoadSceneMode mode)
+    {
+        // Yeni bölümdeki oyuncuyu anında bul
         playerStats = FindFirstObjectByType<PlayerStats>();
         playerController = FindFirstObjectByType<PlayerController>();
-        currentEnergy = maxEnergy;
+
+        // Tüm yetenek sürelerini sıfırla
+        ResetAllCooldowns();
+    }
+
+    // YENİ: Tüm bekleme sürelerini sıfırlayan ve UI'a haber veren fonksiyon
+    public void ResetAllCooldowns()
+    {
+        for (int i = 0; i < 4; i++)
+        {
+            cooldownTimers[i] = 0f;
+            isOnCooldown[i] = false;
+            
+            // Eğer arayüzde (UI) dönen bir bekleme barı varsa onu da anında boşaltır
+            if (abilities[i] != null)
+            {
+                onCooldownChanged?.Invoke(i, 0f, abilities[i].cooldown);
+            }
+        }
+        Debug.Log("Yeni Stage: Tüm yetenek bekleme süreleri sıfırlandı!");
     }
 
     void Update()
     {
-        RegenerateEnergy();
+        // Her ihtimale karşı oyuncu sonradan spawn olursa diye güvenlik kontrolü
+        if (playerStats == null) playerStats = FindFirstObjectByType<PlayerStats>();
+        if (playerController == null) playerController = FindFirstObjectByType<PlayerController>();
+
         UpdateCooldowns();
     }
 
     void InitializeAbilities()
     {
-        // Slot 0: Harita Taraması (Map Scan)
-        abilities[0] = new ActiveAbility
-        {
-            name = "Harita Taraması",
-            energyCost = 30,
-            cooldown = 15f,
-            description = "Ekrandaki tüm düşmanlara hasar ver"
-        };
+        abilities[0] = new ActiveAbility { name = "Göksel Çarpma", cooldown = 15f };
+        abilities[1] = new ActiveAbility { name = "Mutlak Kalkan", cooldown = 20f };
+        abilities[2] = new ActiveAbility { name = "Savaş Çığlığı", cooldown = 25f };
+        abilities[3] = new ActiveAbility { name = "Kanlı Girdap", cooldown = 12f };
 
-        // Slot 1: Kalkan Bariyeri (Shield Barrier)
-        abilities[1] = new ActiveAbility
-        {
-            name = "Kalkan Bariyeri",
-            energyCost = 40,
-            cooldown = 20f,
-            description = "3 saniye boyunca hasar almaz"
-        };
-
-        // Slot 2: Frenzy Atağı (Frenzy Attack)
-        abilities[2] = new ActiveAbility
-        {
-            name = "Frenzy Atağı",
-            energyCost = 50,
-            cooldown = 25f,
-            description = "5 saniye x2 saldırı hızı"
-        };
-
-        // Slot 3: Teleport
-        abilities[3] = new ActiveAbility
-        {
-            name = "Teleport",
-            energyCost = 25,
-            cooldown = 12f,
-            description = "3 birim ileriye ışınla"
-        };
-
-        // Cooldown'ları sıfırla
         for (int i = 0; i < 4; i++)
         {
             cooldownTimers[i] = 0f;
             isOnCooldown[i] = false;
-        }
-    }
-
-    void RegenerateEnergy()
-    {
-        if (currentEnergy < maxEnergy)
-        {
-            currentEnergy += energyRegenRate * Time.deltaTime;
-            currentEnergy = Mathf.Clamp(currentEnergy, 0, maxEnergy);
-            onEnergyChanged?.Invoke(currentEnergy, maxEnergy);
         }
     }
 
@@ -121,7 +105,6 @@ public class ActiveAbilityManager : MonoBehaviour
             {
                 cooldownTimers[i] -= Time.deltaTime;
                 
-                // Cooldown event trigger
                 float remaining = Mathf.Max(0, cooldownTimers[i]);
                 onCooldownChanged?.Invoke(i, remaining, abilities[i].cooldown);
 
@@ -134,177 +117,101 @@ public class ActiveAbilityManager : MonoBehaviour
         }
     }
 
-    public bool CastAbility(int slot)
+    public void CastAbility(int slot)
     {
-        if (slot < 0 || slot >= 4)
-            return false;
+        if (slot < 0 || slot >= 4) return;
+        if (abilities[slot] == null) return;
 
-        if (abilities[slot] == null)
-        {
-            Debug.LogWarning($"Slot {slot} boş!");
-            return false;
-        }
-
-        // Cooldown kontrolü
         if (isOnCooldown[slot])
         {
-            Debug.Log($"{abilities[slot].name} hala cooldown'da!");
-            return false;
+            Debug.LogWarning($"[{abilities[slot].name}] henüz hazır değil! Kalan süre: {Mathf.CeilToInt(cooldownTimers[slot])} saniye.");
+            return;
         }
 
-        // Enerji kontrolü
-        if (currentEnergy < abilities[slot].energyCost)
-        {
-            Debug.Log($"Yeterli enerji yok! Gerekli: {abilities[slot].energyCost}, Mevcut: {currentEnergy}");
-            return false;
-        }
-
-        // Yeteneği cast et
         ExecuteAbility(slot);
 
-        // Enerji harca
-        currentEnergy -= abilities[slot].energyCost;
-        currentEnergy = Mathf.Max(0, currentEnergy);
-        onEnergyChanged?.Invoke(currentEnergy, maxEnergy);
-
-        // Cooldown başlat
         cooldownTimers[slot] = abilities[slot].cooldown;
         isOnCooldown[slot] = true;
 
-        // Event trigger
         onAbilityCast?.Invoke(slot);
-
-        Debug.Log($"Yetenek cast: {abilities[slot].name}");
-        return true;
+        Debug.Log($"---> YETENEK KULLANILDI: {abilities[slot].name}");
     }
 
     void ExecuteAbility(int slot)
     {
         switch (slot)
         {
-            case 0: // Harita Taraması
-                AbilityMapScan();
-                break;
-            case 1: // Kalkan Bariyeri
-                AbilityShieldBarrier();
-                break;
-            case 2: // Frenzy Atağı
-                AbilityFrenzyAttack();
-                break;
-            case 3: // Teleport
-                AbilityTeleport();
-                break;
+            case 0: AbilityCelestialStrike(); break;
+            case 1: AbilityAbsoluteShield(); break;
+            case 2: AbilityBattleCry(); break;
+            case 3: AbilityBloodVortex(); break;
         }
     }
 
-    void AbilityMapScan()
+    void AbilityCelestialStrike()
     {
-        // Ekrandaki tüm düşmanlara hasar
+        if (playerController == null) return;
         LayerMask enemyLayer = LayerMask.GetMask("Enemy");
-        Collider2D[] enemies = Physics2D.OverlapCircleAll(
-            playerController.transform.position, 
-            20f, 
-            enemyLayer
-        );
-
-        int damagePerEnemy = 25;
+        Collider2D[] enemies = Physics2D.OverlapCircleAll(playerController.transform.position, 15f, enemyLayer);
         foreach (Collider2D enemy in enemies)
         {
-            EnemyStats enemyStats = enemy.GetComponent<EnemyStats>();
-            if (enemyStats != null)
-            {
-                enemyStats.TakeDamage(damagePerEnemy);
-            }
+            EnemyStats stats = enemy.GetComponent<EnemyStats>();
+            if (stats != null) stats.TakeDamage(100);
         }
-
-        Debug.Log($"Map Scan: {enemies.Length} düşman vuruldu!");
     }
 
-    void AbilityShieldBarrier()
+    void AbilityAbsoluteShield()
     {
-        // 3 saniye invincible
-        if (playerStats != null)
-        {
-            StartCoroutine(ShieldBarrierCoroutine());
-        }
+        if (playerStats != null) StartCoroutine(ShieldCoroutine());
     }
 
-    IEnumerator ShieldBarrierCoroutine()
+    IEnumerator ShieldCoroutine()
     {
         playerStats.isInvincible = true;
-        yield return new WaitForSeconds(3f);
-        playerStats.isInvincible = false;
-        Debug.Log("Shield Barrier bitti!");
+        yield return new WaitForSeconds(4f);
+        if (playerStats != null) playerStats.isInvincible = false;
     }
 
-    void AbilityFrenzyAttack()
+    void AbilityBattleCry()
     {
-        // 5 saniye x2 attack speed
-        if (playerController != null)
-        {
-            StartCoroutine(FrenzyAttackCoroutine());
+        if (playerController != null) StartCoroutine(BattleCryCoroutine());
+    }
+
+    IEnumerator BattleCryCoroutine()
+    {
+        float originalCooldown = playerController.attackCooldown;
+        playerController.attackCooldown = originalCooldown / 2f; 
+        playerController.attackDamage += 20; 
+        
+        yield return new WaitForSeconds(5f);
+        
+        if (playerController != null) {
+            playerController.attackCooldown = originalCooldown;
+            playerController.attackDamage -= 20;
         }
     }
 
-    IEnumerator FrenzyAttackCoroutine()
+    void AbilityBloodVortex()
     {
-        float originalCooldown = playerController.attackCooldown;
-        playerController.attackCooldown = originalCooldown / 2f; // x2 speed
-        yield return new WaitForSeconds(5f);
-        playerController.attackCooldown = originalCooldown;
-        Debug.Log("Frenzy Attack bitti!");
-    }
-
-    void AbilityTeleport()
-    {
-        // 3 birim ileriye teleport
-        Vector3 teleportDistance = playerController.transform.right * 3f;
-        playerController.transform.position += teleportDistance;
-        Debug.Log("Teleported!");
-    }
-
-    // Getter metodları
-    public ActiveAbility GetAbility(int slot)
-    {
-        if (slot >= 0 && slot < 4)
-            return abilities[slot];
-        return null;
-    }
-
-    public bool IsAbilityOnCooldown(int slot)
-    {
-        if (slot >= 0 && slot < 4)
-            return isOnCooldown[slot];
-        return true;
-    }
-
-    public float GetCooldownRemaining(int slot)
-    {
-        if (slot >= 0 && slot < 4)
-            return Mathf.Max(0, cooldownTimers[slot]);
-        return 0;
-    }
-
-    public float GetEnergyPercent()
-    {
-        return currentEnergy / maxEnergy;
-    }
-
-    public bool CanCastAbility(int slot)
-    {
-        if (slot < 0 || slot >= 4) return false;
-        if (abilities[slot] == null) return false;
-        if (isOnCooldown[slot]) return false;
-        if (currentEnergy < abilities[slot].energyCost) return false;
-        return true;
+        if (playerController == null) return;
+        LayerMask enemyLayer = LayerMask.GetMask("Enemy");
+        Collider2D[] enemies = Physics2D.OverlapCircleAll(playerController.transform.position, 5f, enemyLayer);
+        bool hitSomeone = false;
+        foreach (Collider2D enemy in enemies)
+        {
+            EnemyStats stats = enemy.GetComponent<EnemyStats>();
+            if (stats != null)
+            {
+                stats.TakeDamage(40);
+                hitSomeone = true;
+            }
+        }
+        if (hitSomeone && playerStats != null) playerStats.HealHP(30);
     }
 }
 
-// Yetenek data class
 public class ActiveAbility
 {
     public string name;
-    public float energyCost;
     public float cooldown;
-    public string description;
 }

@@ -287,6 +287,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::FloorManager
   currentFloor: 0
   totalFloors: 16
+  currentNodeIndex: -1
 --- !u!4 &129066182
 Transform:
   m_ObjectHideFlags: 0
@@ -604,6 +605,7 @@ GameObject:
   - component: {fileID: 271561518}
   - component: {fileID: 271561517}
   - component: {fileID: 271561516}
+  - component: {fileID: 271561519}
   m_Layer: 5
   m_Name: AbilitySlot2
   m_TagString: Untagged
@@ -675,7 +677,19 @@ MonoBehaviour:
   m_TargetGraphic: {fileID: 271561517}
   m_OnClick:
     m_PersistentCalls:
-      m_Calls: []
+      m_Calls:
+      - m_Target: {fileID: 271561519}
+        m_TargetAssemblyTypeName: AbilityButton, Assembly-CSharp
+        m_MethodName: OnButtonClick
+        m_Mode: 1
+        m_Arguments:
+          m_ObjectArgument: {fileID: 0}
+          m_ObjectArgumentAssemblyTypeName: UnityEngine.Object, UnityEngine
+          m_IntArgument: 0
+          m_FloatArgument: 0
+          m_StringArgument: 
+          m_BoolArgument: 0
+        m_CallState: 2
 --- !u!114 &271561517
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -714,6 +728,19 @@ CanvasRenderer:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 271561514}
   m_CullTransparentMesh: 1
+--- !u!114 &271561519
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 271561514}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 7f0429beead3e9743a0ddc8d3b09a6f3, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::AbilityButton
+  abilitySlot: 1
 --- !u!1 &284380467
 GameObject:
   m_ObjectHideFlags: 0
@@ -2139,6 +2166,7 @@ GameObject:
   - component: {fileID: 722512254}
   - component: {fileID: 722512253}
   - component: {fileID: 722512252}
+  - component: {fileID: 722512255}
   m_Layer: 5
   m_Name: AbilitySlot4
   m_TagString: Untagged
@@ -2210,7 +2238,19 @@ MonoBehaviour:
   m_TargetGraphic: {fileID: 722512253}
   m_OnClick:
     m_PersistentCalls:
-      m_Calls: []
+      m_Calls:
+      - m_Target: {fileID: 722512255}
+        m_TargetAssemblyTypeName: AbilityButton, Assembly-CSharp
+        m_MethodName: OnButtonClick
+        m_Mode: 1
+        m_Arguments:
+          m_ObjectArgument: {fileID: 0}
+          m_ObjectArgumentAssemblyTypeName: UnityEngine.Object, UnityEngine
+          m_IntArgument: 0
+          m_FloatArgument: 0
+          m_StringArgument: 
+          m_BoolArgument: 0
+        m_CallState: 2
 --- !u!114 &722512253
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -2249,6 +2289,19 @@ CanvasRenderer:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 722512250}
   m_CullTransparentMesh: 1
+--- !u!114 &722512255
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 722512250}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 7f0429beead3e9743a0ddc8d3b09a6f3, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::AbilityButton
+  abilitySlot: 3
 --- !u!1 &735850203
 GameObject:
   m_ObjectHideFlags: 0
@@ -5252,6 +5305,50 @@ MonoBehaviour:
   m_OnValueChanged:
     m_PersistentCalls:
       m_Calls: []
+--- !u!1 &1465658872
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 1465658874}
+  - component: {fileID: 1465658875}
+  m_Layer: 0
+  m_Name: ActiveAbilityManager
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!4 &1465658874
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1465658872}
+  serializedVersion: 2
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalPosition: {x: 882.25433, y: 110.83301, z: 0}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children: []
+  m_Father: {fileID: 0}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!114 &1465658875
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1465658872}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 5919cd80ce06f404085a67df6d50580f, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::ActiveAbilityManager
 --- !u!1 &1467892081
 GameObject:
   m_ObjectHideFlags: 0
@@ -7493,6 +7590,7 @@ GameObject:
   - component: {fileID: 1899565399}
   - component: {fileID: 1899565398}
   - component: {fileID: 1899565397}
+  - component: {fileID: 1899565400}
   m_Layer: 5
   m_Name: AbilitySlot3
   m_TagString: Untagged
@@ -7564,7 +7662,19 @@ MonoBehaviour:
   m_TargetGraphic: {fileID: 1899565398}
   m_OnClick:
     m_PersistentCalls:
-      m_Calls: []
+      m_Calls:
+      - m_Target: {fileID: 1899565400}
+        m_TargetAssemblyTypeName: AbilityButton, Assembly-CSharp
+        m_MethodName: OnButtonClick
+        m_Mode: 1
+        m_Arguments:
+          m_ObjectArgument: {fileID: 0}
+          m_ObjectArgumentAssemblyTypeName: UnityEngine.Object, UnityEngine
+          m_IntArgument: 0
+          m_FloatArgument: 0
+          m_StringArgument: 
+          m_BoolArgument: 0
+        m_CallState: 2
 --- !u!114 &1899565398
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -7603,6 +7713,19 @@ CanvasRenderer:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 1899565395}
   m_CullTransparentMesh: 1
+--- !u!114 &1899565400
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1899565395}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 7f0429beead3e9743a0ddc8d3b09a6f3, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::AbilityButton
+  abilitySlot: 2
 --- !u!1 &1925368318
 GameObject:
   m_ObjectHideFlags: 0
@@ -7904,6 +8027,7 @@ GameObject:
   - component: {fileID: 2036038327}
   - component: {fileID: 2036038326}
   - component: {fileID: 2036038325}
+  - component: {fileID: 2036038328}
   m_Layer: 5
   m_Name: AbilitySlot1
   m_TagString: Untagged
@@ -7975,7 +8099,19 @@ MonoBehaviour:
   m_TargetGraphic: {fileID: 2036038326}
   m_OnClick:
     m_PersistentCalls:
-      m_Calls: []
+      m_Calls:
+      - m_Target: {fileID: 2036038328}
+        m_TargetAssemblyTypeName: AbilityButton, Assembly-CSharp
+        m_MethodName: OnButtonClick
+        m_Mode: 1
+        m_Arguments:
+          m_ObjectArgument: {fileID: 0}
+          m_ObjectArgumentAssemblyTypeName: UnityEngine.Object, UnityEngine
+          m_IntArgument: 0
+          m_FloatArgument: 0
+          m_StringArgument: 
+          m_BoolArgument: 0
+        m_CallState: 2
 --- !u!114 &2036038326
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -8014,6 +8150,19 @@ CanvasRenderer:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 2036038323}
   m_CullTransparentMesh: 1
+--- !u!114 &2036038328
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 2036038323}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 7f0429beead3e9743a0ddc8d3b09a6f3, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::AbilityButton
+  abilitySlot: 0
 --- !u!1 &2135787613
 GameObject:
   m_ObjectHideFlags: 0
@@ -8065,3 +8214,4 @@ SceneRoots:
   - {fileID: 1945950841}
   - {fileID: 1138452841}
   - {fileID: 129066182}
+  - {fileID: 1465658874}
