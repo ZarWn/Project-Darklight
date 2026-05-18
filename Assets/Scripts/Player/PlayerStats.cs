@@ -1,5 +1,6 @@
 using UnityEngine;
 using UnityEngine.Events;
+using UnityEngine.SceneManagement; 
 
 public class PlayerStats : MonoBehaviour
 {
@@ -19,6 +20,13 @@ public class PlayerStats : MonoBehaviour
 
     [Header("Durum")]
     public bool isInvincible = false;
+
+    [Header("Efektler")]
+    public GameObject bloodEffectPrefab;
+
+    [Header("Ses Efektleri")]
+    public AudioClip hurtSound; // Oyuncu hasar alınca çalacak ses
+    private AudioSource audioSource;
 
     [Header("Events")]
     public UnityEvent onLevelUp;
@@ -40,8 +48,35 @@ public class PlayerStats : MonoBehaviour
         currentHP = maxHP;
     }
 
+    void OnEnable()
+    {
+        SceneManager.sceneLoaded += OnSceneLoaded;
+    }
+
+    void OnDisable()
+    {
+        SceneManager.sceneLoaded -= OnSceneLoaded;
+    }
+
+    void OnSceneLoaded(Scene scene, LoadSceneMode mode)
+    {
+        if (currentHP <= 0)
+        {
+            ResetAllStats();
+            Debug.Log("Oyun sıfırlandı, yeni koşu başlıyor!");
+        }
+        else
+        {
+            Animator anim = GetComponent<Animator>();
+            if (anim != null) anim.Play("Idle");
+            Debug.Log("Yeni odaya geçildi. Mevcut can: " + currentHP);
+        }
+    }
+
     void Start()
     {
+        audioSource = GetComponent<AudioSource>(); // Hoparlörü tanımla
+
         if (currentHP <= 0)
             currentHP = maxHP;
     }
@@ -55,7 +90,27 @@ public class PlayerStats : MonoBehaviour
         currentHP = Mathf.Clamp(currentHP, 0, maxHP);
         Debug.Log($"Oyuncu {finalDamage} hasar aldi! HP: {currentHP}/{maxHP}");
 
+        // --- YENİ EKLENEN: OYUNCU HASAR SESİ ---
+        if (audioSource != null && hurtSound != null)
+        {
+            audioSource.PlayOneShot(hurtSound);
+        }
+        // ---------------------------------------
+
+        if (bloodEffectPrefab != null)
+        {
+            Vector3 bloodPosition = transform.position + new Vector3(0f, -0.5f, 0f);
+            GameObject blood = Instantiate(bloodEffectPrefab, bloodPosition, Quaternion.identity);
+            Destroy(blood, 0.5f); 
+        }
+
         StartCoroutine(DamageFlash());
+
+        if (currentHP > 0)
+        {
+            Animator anim = GetComponent<Animator>();
+            if (anim != null) anim.SetTrigger("Hurt");
+        }
 
         if (currentHP <= 0)
             Die();
@@ -77,8 +132,6 @@ public class PlayerStats : MonoBehaviour
     public void GainXP(int amount)
     {
         currentXP += amount;
-        Debug.Log($"XP Kazanildi: +{amount} | Toplam: {currentXP}/{xpToNextLevel}");
-
         while (currentXP >= xpToNextLevel)
         {
             currentXP -= xpToNextLevel;
@@ -89,7 +142,6 @@ public class PlayerStats : MonoBehaviour
     public void GainGold(int amount)
     {
         gold += amount;
-        Debug.Log($"Altin Kazanildi: +{amount} | Toplam: {gold}");
     }
 
     public bool SpendGold(int amount)
@@ -97,10 +149,8 @@ public class PlayerStats : MonoBehaviour
         if (gold >= amount)
         {
             gold -= amount;
-            Debug.Log($"Altin Harcandi: -{amount} | Kalan: {gold}");
             return true;
         }
-        Debug.Log("Yeterli altin yok!");
         return false;
     }
 
@@ -113,7 +163,6 @@ public class PlayerStats : MonoBehaviour
     {
         currentLevel++;
         xpToNextLevel = Mathf.RoundToInt(xpToNextLevel * 1.2f);
-        Debug.Log($"SEVİYE ATLANDI! Yeni Seviye: {currentLevel}");
         onLevelUp?.Invoke();
 
         LevelUpManager levelUpManager = FindFirstObjectByType<LevelUpManager>();
@@ -123,7 +172,9 @@ public class PlayerStats : MonoBehaviour
 
     void Die()
     {
-        Debug.Log("Oyuncu öldü! GAME OVER");
+        Animator anim = GetComponent<Animator>();
+        if (anim != null) anim.SetTrigger("Die");
+        
         Time.timeScale = 0f;
 
         LevelUpManager levelUpManager = FindFirstObjectByType<LevelUpManager>();
@@ -141,7 +192,6 @@ public class PlayerStats : MonoBehaviour
     {
         currentHP += amount;
         currentHP = Mathf.Clamp(currentHP, 0, maxHP);
-        Debug.Log($"Can yenilendi! HP: {currentHP}/{maxHP}");
     }
 
     public void IncreaseMaxHP(int amount)
@@ -149,13 +199,11 @@ public class PlayerStats : MonoBehaviour
         maxHP += amount;
         currentHP += amount;
         currentHP = Mathf.Clamp(currentHP, 0, maxHP);
-        Debug.Log($"Max can artti! Yeni Max HP: {maxHP}");
     }
 
     public void IncreaseArmor(int amount)
     {
         armor += amount;
-        Debug.Log($"Zirh artti! Yeni Zirh: {armor}");
     }
 
     public float GetHPPercent()
@@ -166,5 +214,24 @@ public class PlayerStats : MonoBehaviour
     public float GetXPPercent()
     {
         return (float)currentXP / xpToNextLevel;
+    }
+
+    public void ResetAllStats()
+    {
+        currentHP = maxHP; 
+        armor = 0;
+        currentLevel = 1;
+        currentXP = 0;
+        xpToNextLevel = 100;
+        gold = 0;
+        killCount = 0;
+        Time.timeScale = 1f;
+
+        Animator anim = GetComponent<Animator>();
+        if (anim != null)
+        {
+            anim.ResetTrigger("Die");
+            anim.Play("Idle"); 
+        }
     }
 }

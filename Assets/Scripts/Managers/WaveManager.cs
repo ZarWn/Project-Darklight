@@ -46,34 +46,40 @@ public class WaveManager : MonoBehaviour
     {
         yield return new WaitForSeconds(2f);
 
-        if (isBossFloor)
+        // Katın içindeki tüm dalgaları tek tek dön
+        while (currentWave < totalWaves)
         {
-            // Boss katı
-            StartCoroutine(SpawnBoss());
-        }
-        else if (isEliteFloor)
-        {
-            // Elite katı
-            SpawnEliteEnemy();
-        }
-        else
-        {
-            // Normal savaş
-            while (currentWave < totalWaves)
+            currentWave++;
+            
+            // EĞER SON DALGAYSA VE BU BİR BOSS/ELITE KATIYSA DÜELLO BAŞLASIN
+            if (currentWave == totalWaves && isBossFloor)
             {
-                currentWave++;
+                Debug.Log($"=== DALGA {currentWave}: BOSS DÜELLOSU BAŞLIYOR ===");
+                yield return StartCoroutine(SpawnBoss());
+            }
+            else if (currentWave == totalWaves && isEliteFloor)
+            {
+                Debug.Log($"=== DALGA {currentWave}: ELİTE DÜELLOSU BAŞLIYOR ===");
+                SpawnEliteEnemy();
+            }
+            // EĞER SON DALGA DEĞİLSE VEYA NORMAL BİR KATSA SÜRÜ GELSİN
+            else
+            {
                 Debug.Log($"=== DALGA {currentWave} BAŞLIYOR ===");
-
                 yield return StartCoroutine(SpawnWave(currentWave));
-                yield return new WaitUntil(() => enemiesAlive <= 0);
-                Debug.Log($"Dalga {currentWave} tamamlandi!");
-
-                if (currentWave < totalWaves)
-                    yield return new WaitForSeconds(timeBetweenWaves);
             }
 
-            FloorComplete();
+            // Dalgadaki tüm düşmanların (veya Boss'un) ölmesini bekle
+            yield return new WaitUntil(() => enemiesAlive <= 0);
+            Debug.Log($"Dalga {currentWave} tamamlandi!");
+
+            // Tüm dalgalar bitmediyse bir sonraki dalga için bekle
+            if (currentWave < totalWaves)
+                yield return new WaitForSeconds(timeBetweenWaves);
         }
+
+        // Katın tüm dalgaları (ve varsa Boss'u) bittiyse katı tamamla
+        FloorComplete();
     }
 
     IEnumerator SpawnWave(int waveNumber)
@@ -193,6 +199,10 @@ public class WaveManager : MonoBehaviour
                 FloorManager.Instance.GetEnemyHPMultiplier() : 1f;
             bossStats.maxHP = Mathf.RoundToInt(bossStats.maxHP * floorHPMult);
             bossStats.currentHP = bossStats.maxHP;
+            
+            // Eğer özel bir boss prefabın yoksa ve normal iskeleti kullanıyorsan 
+            // onu da boss boyutuna getirelim (İsteğe bağlı silebilirsin)
+            boss.transform.localScale = new Vector3(2.5f, 2.5f, 1f); 
         }
 
         enemiesAlive = 1;
@@ -203,13 +213,7 @@ public class WaveManager : MonoBehaviour
         enemiesAlive--;
         Debug.Log($"Düşman öldü! Kalan: {enemiesAlive}");
 
-        if (enemiesAlive <= 0)
-        {
-            if (isBossFloor || isEliteFloor)
-            {
-                FloorComplete();
-            }
-        }
+        // "Kat tamamlama" işini yukarıdaki WaitUntil hallettiği için buradaki eski if bloğunu kaldırdık
     }
 
     void FloorComplete()

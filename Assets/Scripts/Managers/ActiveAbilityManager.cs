@@ -1,15 +1,36 @@
 using UnityEngine;
 using System.Collections;
-using UnityEngine.SceneManagement; // SAHNE GEÇİŞLERİNİ ANLAMAK İÇİN EKLENDİ
+using UnityEngine.SceneManagement; 
 
 public class ActiveAbilityManager : MonoBehaviour
 {
     public static ActiveAbilityManager Instance;
 
     [Header("Yetenek Slotları")]
-    private ActiveAbility[] abilities = new ActiveAbility[4];
-    private float[] cooldownTimers = new float[4];
-    private bool[] isOnCooldown = new bool[4];
+    private ActiveAbility[] abilities = new ActiveAbility[3];
+    private float[] cooldownTimers = new float[3];
+    private bool[] isOnCooldown = new bool[3];
+
+    [Header("Yetenek Efektleri (VFX)")]
+    public GameObject celestialStrikeVFX; 
+    public GameObject absoluteShieldVFX;  
+    public GameObject battleCryVFX;       
+
+    [Header("Yetenek Ses Efektleri (SFX)")]
+    public AudioClip celestialStrikeSFX;  
+    public AudioClip absoluteShieldSFX;   
+    public AudioClip battleCrySFX;        
+    private AudioSource audioSource;       
+
+    [Header("Göksel Çarpma (Çoklu Yıldırım) Ayarları")]
+    public int celestialStrikeCount = 4;       
+    public float celestialStrikeRange = 8f;     
+    public float timeBetweenStrikes = 0.25f;    
+    public float strikeDamageRadius = 2.5f;     
+    
+    // --- YENİ: YILDIRIMIN YÜKSEKLİK VE BOYUT AYARLARI ---
+    public float celestialStrikeYOffset = 1f;   // Yıldırımı aşağı/yukarı kaydırmak için (Örn: -2f yaparsan yere çöker)
+    public float celestialStrikeScale = 5f;     // Yıldırımın devasalık boyutu (Örn: 4 veya 5 yapabilirsin)
 
     private PlayerStats playerStats;
     private PlayerController playerController;
@@ -35,7 +56,6 @@ public class ActiveAbilityManager : MonoBehaviour
         InitializeAbilities();
     }
 
-    // YENİ: Sahne (Stage) değişimlerini dinlemeye başla
     private void OnEnable()
     {
         SceneManager.sceneLoaded += OnSceneLoaded;
@@ -46,37 +66,40 @@ public class ActiveAbilityManager : MonoBehaviour
         SceneManager.sceneLoaded -= OnSceneLoaded;
     }
 
-    // YENİ: Yeni sahne yüklendiğinde otomatik çalışır
     private void OnSceneLoaded(Scene scene, LoadSceneMode mode)
     {
-        // Yeni bölümdeki oyuncuyu anında bul
         playerStats = FindFirstObjectByType<PlayerStats>();
         playerController = FindFirstObjectByType<PlayerController>();
 
-        // Tüm yetenek sürelerini sıfırla
         ResetAllCooldowns();
     }
 
-    // YENİ: Tüm bekleme sürelerini sıfırlayan ve UI'a haber veren fonksiyon
     public void ResetAllCooldowns()
     {
-        for (int i = 0; i < 4; i++)
+        for (int i = 0; i < 3; i++)
         {
             cooldownTimers[i] = 0f;
             isOnCooldown[i] = false;
             
-            // Eğer arayüzde (UI) dönen bir bekleme barı varsa onu da anında boşaltır
             if (abilities[i] != null)
             {
                 onCooldownChanged?.Invoke(i, 0f, abilities[i].cooldown);
             }
         }
-        Debug.Log("Yeni Stage: Tüm yetenek bekleme süreleri sıfırlandı!");
+    }
+
+    void Start()
+    {
+        audioSource = GetComponent<AudioSource>();
+        if (audioSource == null)
+        {
+            audioSource = gameObject.AddComponent<AudioSource>();
+        }
+        audioSource.playOnAwake = false;
     }
 
     void Update()
     {
-        // Her ihtimale karşı oyuncu sonradan spawn olursa diye güvenlik kontrolü
         if (playerStats == null) playerStats = FindFirstObjectByType<PlayerStats>();
         if (playerController == null) playerController = FindFirstObjectByType<PlayerController>();
 
@@ -88,9 +111,8 @@ public class ActiveAbilityManager : MonoBehaviour
         abilities[0] = new ActiveAbility { name = "Göksel Çarpma", cooldown = 15f };
         abilities[1] = new ActiveAbility { name = "Mutlak Kalkan", cooldown = 20f };
         abilities[2] = new ActiveAbility { name = "Savaş Çığlığı", cooldown = 25f };
-        abilities[3] = new ActiveAbility { name = "Kanlı Girdap", cooldown = 12f };
 
-        for (int i = 0; i < 4; i++)
+        for (int i = 0; i < 3; i++)
         {
             cooldownTimers[i] = 0f;
             isOnCooldown[i] = false;
@@ -99,7 +121,7 @@ public class ActiveAbilityManager : MonoBehaviour
 
     void UpdateCooldowns()
     {
-        for (int i = 0; i < 4; i++)
+        for (int i = 0; i < 3; i++)
         {
             if (isOnCooldown[i])
             {
@@ -119,14 +141,10 @@ public class ActiveAbilityManager : MonoBehaviour
 
     public void CastAbility(int slot)
     {
-        if (slot < 0 || slot >= 4) return;
+        if (slot < 0 || slot >= 3) return; 
         if (abilities[slot] == null) return;
 
-        if (isOnCooldown[slot])
-        {
-            Debug.LogWarning($"[{abilities[slot].name}] henüz hazır değil! Kalan süre: {Mathf.CeilToInt(cooldownTimers[slot])} saniye.");
-            return;
-        }
+        if (isOnCooldown[slot]) return;
 
         ExecuteAbility(slot);
 
@@ -134,7 +152,6 @@ public class ActiveAbilityManager : MonoBehaviour
         isOnCooldown[slot] = true;
 
         onAbilityCast?.Invoke(slot);
-        Debug.Log($"---> YETENEK KULLANILDI: {abilities[slot].name}");
     }
 
     void ExecuteAbility(int slot)
@@ -144,19 +161,54 @@ public class ActiveAbilityManager : MonoBehaviour
             case 0: AbilityCelestialStrike(); break;
             case 1: AbilityAbsoluteShield(); break;
             case 2: AbilityBattleCry(); break;
-            case 3: AbilityBloodVortex(); break;
         }
     }
 
     void AbilityCelestialStrike()
     {
-        if (playerController == null) return;
-        LayerMask enemyLayer = LayerMask.GetMask("Enemy");
-        Collider2D[] enemies = Physics2D.OverlapCircleAll(playerController.transform.position, 15f, enemyLayer);
-        foreach (Collider2D enemy in enemies)
+        if (playerController != null) 
         {
-            EnemyStats stats = enemy.GetComponent<EnemyStats>();
-            if (stats != null) stats.TakeDamage(100);
+            StartCoroutine(CelestialStrikeCoroutine());
+        }
+    }
+
+    IEnumerator CelestialStrikeCoroutine()
+    {
+        LayerMask enemyLayer = LayerMask.GetMask("Enemy");
+        Vector3 playerPos = playerController.transform.position;
+
+        for (int i = 0; i < celestialStrikeCount; i++)
+        {
+            float randomX = Random.Range(-celestialStrikeRange, celestialStrikeRange);
+            
+            // Oyuncunun ayak hizasına senin verdiğin el yapımı ofseti ekliyoruz
+            Vector3 strikePosition = new Vector3(playerPos.x + randomX, playerPos.y + celestialStrikeYOffset, 0f);
+
+            if (celestialStrikeVFX != null)
+            {
+                GameObject vfx = Instantiate(celestialStrikeVFX, strikePosition, Quaternion.identity);
+                
+                // Animator engelini aşmak için hem parent'ı hem child'ları kökten büyütüyoruz
+                SetVFXScaleRecursively(vfx, celestialStrikeScale);
+                
+                SetVFXSortingBehindPlayer(vfx); 
+                Destroy(vfx, 2f); 
+            }
+
+            if (audioSource != null && celestialStrikeSFX != null)
+            {
+                audioSource.pitch = Random.Range(0.85f, 1.15f); 
+                audioSource.PlayOneShot(celestialStrikeSFX, 0.6f); 
+            }
+
+            Collider2D[] enemies = Physics2D.OverlapCircleAll(strikePosition, strikeDamageRadius, enemyLayer);
+            foreach (Collider2D enemy in enemies)
+            {
+                EnemyStats stats = enemy.GetComponent<EnemyStats>();
+                if (stats != null) stats.TakeDamage(100);
+            }
+
+            yield return new WaitForSeconds(timeBetweenStrikes);
         }
     }
 
@@ -168,8 +220,24 @@ public class ActiveAbilityManager : MonoBehaviour
     IEnumerator ShieldCoroutine()
     {
         playerStats.isInvincible = true;
+
+        GameObject activeShield = null;
+        if (absoluteShieldVFX != null && playerController != null)
+        {
+            activeShield = Instantiate(absoluteShieldVFX, playerController.transform.position, Quaternion.identity, playerController.transform);
+            SetVFXSortingBehindPlayer(activeShield); 
+        }
+
+        if (audioSource != null && absoluteShieldSFX != null)
+        {
+            audioSource.pitch = 1f; 
+            audioSource.PlayOneShot(absoluteShieldSFX, 0.7f);
+        }
+
         yield return new WaitForSeconds(4f);
+
         if (playerStats != null) playerStats.isInvincible = false;
+        if (activeShield != null) Destroy(activeShield);
     }
 
     void AbilityBattleCry()
@@ -179,6 +247,19 @@ public class ActiveAbilityManager : MonoBehaviour
 
     IEnumerator BattleCryCoroutine()
     {
+        if (battleCryVFX != null && playerController != null)
+        {
+            GameObject vfx = Instantiate(battleCryVFX, playerController.transform.position, Quaternion.identity, playerController.transform);
+            SetVFXSortingBehindPlayer(vfx);
+            Destroy(vfx, 3f); 
+        }
+
+        if (audioSource != null && battleCrySFX != null)
+        {
+            audioSource.pitch = Random.Range(0.95f, 1.05f);
+            audioSource.PlayOneShot(battleCrySFX, 0.8f); 
+        }
+
         float originalCooldown = playerController.attackCooldown;
         playerController.attackCooldown = originalCooldown / 2f; 
         playerController.attackDamage += 20; 
@@ -191,22 +272,33 @@ public class ActiveAbilityManager : MonoBehaviour
         }
     }
 
-    void AbilityBloodVortex()
+    private void SetVFXSortingBehindPlayer(GameObject vfxObject)
     {
         if (playerController == null) return;
-        LayerMask enemyLayer = LayerMask.GetMask("Enemy");
-        Collider2D[] enemies = Physics2D.OverlapCircleAll(playerController.transform.position, 5f, enemyLayer);
-        bool hitSomeone = false;
-        foreach (Collider2D enemy in enemies)
+
+        SpriteRenderer playerSR = playerController.GetComponent<SpriteRenderer>();
+        if (playerSR == null) return;
+
+        SpriteRenderer[] vfxRenderers = vfxObject.GetComponentsInChildren<SpriteRenderer>();
+        
+        foreach (SpriteRenderer sr in vfxRenderers)
         {
-            EnemyStats stats = enemy.GetComponent<EnemyStats>();
-            if (stats != null)
-            {
-                stats.TakeDamage(40);
-                hitSomeone = true;
-            }
+            sr.sortingLayerID = playerSR.sortingLayerID; 
+            sr.sortingOrder = playerSR.sortingOrder - 1; 
         }
-        if (hitSomeone && playerStats != null) playerStats.HealHP(30);
+    }
+
+    // --- YENİ: ANIMATOR ENGELİNİ AŞAN AGRESİF BÜYÜTME FONKSİYONU ---
+    private void SetVFXScaleRecursively(GameObject obj, float targetScale)
+    {
+        obj.transform.localScale = new Vector3(targetScale, targetScale, 1f);
+        
+        // Eğer alt objeler varsa hepsini tek tek gez ve boyutunu sabitle
+        foreach (Transform child in obj.transform)
+        {
+            child.localScale = new Vector3(1f, 1f, 1f); // Parent büyüdüğü için child'ları bozmasın diye 1'e sabitliyoruz
+            SetVFXScaleRecursively(child.gameObject, targetScale);
+        }
     }
 }
 

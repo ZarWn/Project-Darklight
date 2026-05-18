@@ -8,12 +8,25 @@ public class PlayerController : MonoBehaviour
     public float attackRange = 1f;
     public float attackCooldown = 0.5f;
     public int attackDamage = 10;
+    
+    [Tooltip("Animasyon başladıktan kaç saniye sonra hasar verilsin?")]
+    public float hitDelay = 0.2f; 
+    
     public LayerMask enemyLayer;
 
+    // --- YENİ EKLENEN: KILIÇ SESİ ---
+    [Header("Ses Ayarları")]
+    public AudioClip swordAttackSound;
+    private AudioSource audioSource;
+    // --------------------------------
+
+    private Animator animator;
     private float attackTimer;
     private int hitCount = 0;
     private WeaponData currentWeapon;
     private PlayerStats playerStats;
+
+    private float baseAnimSpeed = 1f;
 
     private void Awake()
     {
@@ -36,6 +49,12 @@ public class PlayerController : MonoBehaviour
             playerStats = FindFirstObjectByType<PlayerStats>();
 
         enemyLayer = LayerMask.GetMask("Enemy");
+        animator = GetComponent<Animator>();
+        
+        // --- HOPARLÖRÜ KODA TANIT ---
+        audioSource = GetComponent<AudioSource>();
+        // ----------------------------
+        
         ApplyWeapon();
     }
 
@@ -65,10 +84,7 @@ public class PlayerController : MonoBehaviour
             if (playerStats != null)
             {
                 playerStats.maxHP -= currentWeapon.maxHPPenalty;
-                playerStats.currentHP = Mathf.Min(
-                    playerStats.currentHP,
-                    playerStats.maxHP
-                );
+                playerStats.currentHP = Mathf.Min(playerStats.currentHP, playerStats.maxHP);
             }
         }
 
@@ -86,24 +102,138 @@ public class PlayerController : MonoBehaviour
 
         if (attackTimer >= attackCooldown)
         {
-            attackTimer = 0f;
-            hitCount++;
-
-            PerformAttack(1);
-            PerformAttack(-1);
-
-            // Khaos Asası kendine hasar - sadece düşman varsa
-            if (currentWeapon != null &&
-                currentWeapon.weaponType == WeaponType.KhaosAsasi)
+            if (CheckIfEnemyNearby())
             {
-                // Etrafta düşman varsa kendine hasar ver
-                Collider2D[] nearbyEnemies = Physics2D.OverlapCircleAll(
-                    transform.position, attackRange, enemyLayer
-                );
-                if (nearbyEnemies.Length > 0 && playerStats != null)
-                    playerStats.TakeDamage(currentWeapon.selfDamage);
+                attackTimer = 0f;
+                hitCount++;
+
+                FaceNearestEnemy();
+
+                if (animator != null)
+                {
+                    float targetAnimSpeed = 0.5f / attackCooldown; 
+                    animator.speed = targetAnimSpeed; 
+
+                    animator.ResetTrigger("Attack");
+                    float randomAttackIndex = Random.Range(0f, 1f);
+                    animator.SetFloat("AttackIndex", randomAttackIndex);
+                    animator.SetTrigger("Attack");
+                }
+
+                // --- YENİ EKLENEN: KILIÇ SESİNİ ÇAL ---
+                if (audioSource != null && swordAttackSound != null)
+                {
+                    // Peş peşe vurmalarda monotonluğu bozmak için sesi hafif inceltip kalınlaştır
+                    audioSource.pitch = Random.Range(0.9f, 1.15f);
+                    // Kılıç sesini %60 volümde çal (Eğer kafa ütülerse 0.4f'e falan düşürebilirsin)
+                    audioSource.PlayOneShot(swordAttackSound, 0.6f); 
+                }
+                // --------------------------------------
+
+                StartCoroutine(DelayedHitSequence());
+            }
+            else
+            {
+                attackTimer = attackCooldown;
+
+                if (animator != null)
+                {
+                    animator.ResetTrigger("Attack");
+                    animator.speed = baseAnimSpeed; 
+                }
             }
         }
+    }
+
+    void FaceNearestEnemy()
+    {
+        int facingDirection = 1; 
+        
+        Vector2 rightPoint = (Vector2)transform.position + Vector2.right * attackRange;
+        if (Physics2D.OverlapCircle(rightPoint, 0.5f, enemyLayer) != null)
+        {
+            facingDirection = 1;
+        }
+        else 
+        {
+            Vector2 leftPoint = (Vector2)transform.position + Vector2.left * attackRange;
+            if (Physics2D.OverlapCircle(leftPoint, 0.5f, enemyLayer) != null)
+            {
+                facingDirection = -1;
+            }
+        }
+        
+        if (currentWeapon != null && currentWeapon.piercingShot)
+        {
+             if (Physics2D.Raycast(transform.position, Vector2.right, attackRange, enemyLayer)) 
+                 facingDirection = 1;
+             else if (Physics2D.Raycast(transform.position, Vector2.left, attackRange, enemyLayer)) 
+                 facingDirection = -1;
+        }
+
+        if (currentWeapon != null && currentWeapon.aoeAttack)
+        {
+             Collider2D enemy = Physics2D.OverlapCircle(transform.position, attackRange, enemyLayer);
+             if (enemy != null)
+             {
+                  facingDirection = (enemy.transform.position.x >= transform.position.x) ? 1 : -1;
+             }
+        }
+
+        Vector3 currentScale = transform.localScale;
+        currentScale.x = Mathf.Abs(currentScale.x) * facingDirection;
+        transform.localScale = currentScale;
+    }
+
+    System.Collections.IEnumerator DelayedHitSequence()
+    {
+        yield return new WaitForSeconds(hitDelay);
+
+        PerformAttack(1);
+        PerformAttack(-1);
+
+        if (currentWeapon != null && currentWeapon.weaponType == WeaponType.KhaosAsasi)
+        {
+            Collider2D[] nearbyEnemies = Physics2D.OverlapCircleAll(
+                transform.position, attackRange, enemyLayer
+            );
+            if (nearbyEnemies.Length > 0 && playerStats != null)
+                playerStats.TakeDamage(currentWeapon.selfDamage);
+        }
+        
+        yield return new WaitForSeconds(attackCooldown - hitDelay);
+        if (animator != null && !CheckIfEnemyNearby()) 
+        {
+            animator.speed = baseAnimSpeed;
+        }
+    }
+
+    bool CheckIfEnemyNearby()
+    {
+        if (currentWeapon != null && currentWeapon.aoeAttack)
+        {
+            Collider2D[] enemies = Physics2D.OverlapCircleAll(transform.position, attackRange, enemyLayer);
+            return enemies.Length > 0;
+        }
+
+        Vector2 rightPoint = (Vector2)transform.position + Vector2.right * attackRange;
+        Vector2 leftPoint = (Vector2)transform.position + Vector2.left * attackRange;
+
+        Collider2D[] rightEnemies = Physics2D.OverlapCircleAll(rightPoint, 0.5f, enemyLayer);
+        Collider2D[] leftEnemies = Physics2D.OverlapCircleAll(leftPoint, 0.5f, enemyLayer);
+
+        return rightEnemies.Length > 0 || leftEnemies.Length > 0 || CheckPiercingEnemies();
+    }
+
+    bool CheckPiercingEnemies()
+    {
+        if (currentWeapon != null && currentWeapon.piercingShot)
+        {
+            RaycastHit2D[] rightHits = Physics2D.RaycastAll(transform.position, Vector2.right, attackRange, enemyLayer);
+            RaycastHit2D[] leftHits = Physics2D.RaycastAll(transform.position, Vector2.left, attackRange, enemyLayer);
+            return rightHits.Length > 0 || leftHits.Length > 0;
+        }
+        return false;
     }
 
     bool PerformAttack(int direction)
@@ -114,12 +244,9 @@ public class PlayerController : MonoBehaviour
         if (currentWeapon != null && currentWeapon.piercingShot)
             return PerformPiercingAttack(direction);
 
-        Vector2 attackPoint = (Vector2)transform.position +
-                              Vector2.right * direction * attackRange;
+        Vector2 attackPoint = (Vector2)transform.position + Vector2.right * direction * attackRange;
 
-        Collider2D[] hitEnemies = Physics2D.OverlapCircleAll(
-            attackPoint, 0.5f, enemyLayer
-        );
+        Collider2D[] hitEnemies = Physics2D.OverlapCircleAll(attackPoint, 0.5f, enemyLayer);
 
         foreach (Collider2D enemy in hitEnemies)
         {
@@ -129,19 +256,15 @@ public class PlayerController : MonoBehaviour
                 int finalDamage = CalculateDamage();
                 enemyStats.TakeDamage(finalDamage);
 
-                // Can çalma (Ruh Tırpanı)
                 if (currentWeapon != null && currentWeapon.lifeSteal > 0)
                 {
-                    int healAmount = Mathf.RoundToInt(
-                        finalDamage * currentWeapon.lifeSteal
-                    );
+                    int healAmount = Mathf.RoundToInt(finalDamage * currentWeapon.lifeSteal);
                     if (playerStats != null)
                         playerStats.HealHP(healAmount);
                 }
 
-                // Kanama (Kan Mızrağı)
-                 if (currentWeapon != null && currentWeapon.applyBleed && !enemyStats.isBleedingAlready)
-                StartCoroutine(ApplyBleed(enemyStats));
+                if (currentWeapon != null && currentWeapon.applyBleed && !enemyStats.isBleedingAlready)
+                    StartCoroutine(ApplyBleed(enemyStats));
             }
         }
 
@@ -150,9 +273,7 @@ public class PlayerController : MonoBehaviour
 
     bool PerformAOEAttack()
     {
-        Collider2D[] hitEnemies = Physics2D.OverlapCircleAll(
-            transform.position, attackRange, enemyLayer
-        );
+        Collider2D[] hitEnemies = Physics2D.OverlapCircleAll(transform.position, attackRange, enemyLayer);
 
         foreach (Collider2D enemy in hitEnemies)
         {
@@ -166,12 +287,7 @@ public class PlayerController : MonoBehaviour
 
     bool PerformPiercingAttack(int direction)
     {
-        RaycastHit2D[] hits = Physics2D.RaycastAll(
-            transform.position,
-            Vector2.right * direction,
-            attackRange,
-            enemyLayer
-        );
+        RaycastHit2D[] hits = Physics2D.RaycastAll(transform.position, Vector2.right * direction, attackRange, enemyLayer);
 
         foreach (RaycastHit2D hit in hits)
         {
@@ -180,7 +296,6 @@ public class PlayerController : MonoBehaviour
             {
                 int finalDamage = CalculateDamage();
                 enemyStats.TakeDamage(finalDamage);
-                Debug.Log($"Yay ile düşmana {finalDamage} hasar verildi!");
             }
         }
 
@@ -190,49 +305,38 @@ public class PlayerController : MonoBehaviour
     int CalculateDamage()
     {
         int damage = attackDamage;
-
         if (currentWeapon != null && currentWeapon.critEvery > 0)
         {
             if (hitCount % currentWeapon.critEvery == 0)
             {
                 damage = Mathf.RoundToInt(damage * currentWeapon.critMultiplier);
-                Debug.Log("KRİTİK HASAR!");
             }
         }
-
         return damage;
     }
 
     System.Collections.IEnumerator ApplyBleed(EnemyStats enemy)
-{
-    if (enemy == null) yield break;
-    if (enemy.isDead) yield break;
-    if (enemy.isBleedingAlready) yield break;
-
-    enemy.isBleedingAlready = true;
-    float elapsed = 0f;
-
-    while (elapsed < currentWeapon.bleedDuration)
     {
-        yield return new WaitForSeconds(1f);
-        elapsed += 1f;
+        if (enemy == null || enemy.isDead || enemy.isBleedingAlready) yield break;
 
-        // Düşman öldüyse dur
-        if (enemy == null || enemy.isDead)
+        enemy.isBleedingAlready = true;
+        float elapsed = 0f;
+
+        while (elapsed < currentWeapon.bleedDuration)
         {
-            yield break;
+            yield return new WaitForSeconds(1f);
+            elapsed += 1f;
+
+            if (enemy == null || enemy.isDead) yield break;
+
+            enemy.TakeDamage(currentWeapon.bleedDamage);
+            if (playerStats != null)
+                playerStats.TakeDamage(currentWeapon.bleedSelfDamage);
         }
 
-        enemy.TakeDamage(currentWeapon.bleedDamage);
-
-        // Kendine çok az hasar ver
-        if (playerStats != null)
-            playerStats.TakeDamage(currentWeapon.bleedSelfDamage);
+        if (enemy != null)
+            enemy.isBleedingAlready = false;
     }
-
-    if (enemy != null)
-        enemy.isBleedingAlready = false;
-}
 
     public void IncreaseAttackSpeed(float amount)
     {

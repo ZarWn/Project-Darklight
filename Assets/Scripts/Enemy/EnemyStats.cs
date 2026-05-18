@@ -10,6 +10,15 @@ public class EnemyStats : MonoBehaviour
     public float moveSpeed = 2f;
     public int goldReward = 10;
 
+    [Header("Efektler")]
+    public GameObject bloodEffectPrefab;
+
+    [Header("Ses Efektleri")]
+    public AudioClip hurtSound; 
+    private AudioSource audioSource;
+
+    private SpriteRenderer spriteRenderer;
+    private Color originalColor = Color.white;
     public bool isDead = false;
 
     [HideInInspector]
@@ -18,55 +27,84 @@ public class EnemyStats : MonoBehaviour
     void Start()
     {
         currentHP = maxHP;
+        audioSource = GetComponent<AudioSource>(); 
+
+        spriteRenderer = GetComponent<SpriteRenderer>();
+        if (spriteRenderer != null)
+        {
+            originalColor = spriteRenderer.color;
+        }
     }
 
     public void TakeDamage(int damageAmount)
-{
-    if (isDead) return;
-
-    currentHP -= damageAmount;
-    Debug.Log($"Düşman {damageAmount} hasar aldı! HP: {currentHP}/{maxHP}");
-
-    // Hasar geri bildirimi (kırmızı flash)
-    StartCoroutine(DamageFlash());
-
-    if (currentHP <= 0)
     {
-        Die();
+        if (isDead) return;
+
+        currentHP -= damageAmount;
+
+        // --- YENİ: DENGELİ HASAR SESİ ---
+        if (audioSource != null && hurtSound != null)
+        {
+            // Her darbede farklı acı çığlığı tonu yakalamak için pitch ayarı
+            audioSource.pitch = Random.Range(0.85f, 1.15f);
+            // Hasar sesini %40 ses seviyesine (0.4f) sabitledik
+            audioSource.PlayOneShot(hurtSound, 0.4f); 
+        }
+
+        if (bloodEffectPrefab != null)
+        {
+            Vector3 bloodPosition = transform.position + new Vector3(0f, 0.5f, 0f);
+            GameObject blood = Instantiate(bloodEffectPrefab, bloodPosition, Quaternion.identity);
+            Destroy(blood, 0.5f); 
+        }
+
+        if (currentHP > 0)
+        {
+            Animator anim = GetComponent<Animator>();
+            if (anim != null) anim.SetTrigger("Hurt");
+        }
+
+        if (gameObject.activeInHierarchy)
+        {
+            StartCoroutine(FlashRed());
+        }
+
+        if (currentHP <= 0)
+        {
+            currentHP = 0;
+            isDead = true;
+
+            PlayerStats player = FindFirstObjectByType<PlayerStats>();
+            if (player != null)
+            {
+                player.GainXP(xpReward);
+                player.GainGold(goldReward);
+                player.AddKill();
+            }
+
+            WaveManager waveManager = FindFirstObjectByType<WaveManager>();
+            if (waveManager != null)
+            {
+                waveManager.OnEnemyDied();
+            }
+
+            EnemyController controller = GetComponent<EnemyController>();
+            if (controller != null)
+            {
+                controller.Die(); 
+            }
+        }
     }
-}
 
-System.Collections.IEnumerator DamageFlash()
-{
-    SpriteRenderer sr = GetComponent<SpriteRenderer>();
-    if (sr == null) yield break;
-
-    Color originalColor = sr.color;
-    sr.color = Color.red;
-    yield return new WaitForSeconds(0.1f);
-    sr.color = originalColor;
-}
-
-    void Die()
-{
-    isDead = true;
-
-    PlayerStats player = FindFirstObjectByType<PlayerStats>();
-    if (player != null)
+    System.Collections.IEnumerator FlashRed()
     {
-        player.GainXP(xpReward);
-        player.GainGold(goldReward);
-        player.AddKill();
+        if (spriteRenderer != null)
+        {
+            scriptRenderer: spriteRenderer.color = Color.red; 
+            yield return new WaitForSeconds(0.15f); 
+            spriteRenderer.color = originalColor; 
+        }
     }
-
-    WaveManager waveManager = FindFirstObjectByType<WaveManager>();
-    if (waveManager != null)
-    {
-        waveManager.OnEnemyDied();
-    }
-
-    Destroy(gameObject, 0.1f);
-}
 
     public float GetHPPercent()
     {
