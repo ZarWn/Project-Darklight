@@ -6747,15 +6747,15 @@ MonoBehaviour:
   celestialStrikeVFX: {fileID: 472348721595941665, guid: 0be93dd68b1916e44bb40c984667a5bc, type: 3}
   absoluteShieldVFX: {fileID: 4809189679549176775, guid: e261f3f1037076e4bb1f35ed163d7dd1, type: 3}
   battleCryVFX: {fileID: 1941194631436534354, guid: 3740fcce4eb543945bee96bbdbb46449, type: 3}
-  bloodVortexVFX: {fileID: 0}
   celestialStrikeSFX: {fileID: 8300000, guid: b454251fd080d7e45a93adb75c2925d3, type: 3}
   absoluteShieldSFX: {fileID: 8300000, guid: f1a7a046b7a4078449dfe3d90d2e87fb, type: 3}
   battleCrySFX: {fileID: 8300000, guid: 281d46735c442164197e24066b89d730, type: 3}
-  bloodVortexSFX: {fileID: 0}
   celestialStrikeCount: 4
   celestialStrikeRange: 10
   timeBetweenStrikes: 0.25
   strikeDamageRadius: 2.5
+  celestialStrikeYOffset: 1
+  celestialStrikeScale: 5
 --- !u!82 &1465658876
 AudioSource:
   m_ObjectHideFlags: 0
@@ -6769,7 +6769,7 @@ AudioSource:
   m_audioClip: {fileID: 0}
   m_Resource: {fileID: 0}
   m_PlayOnAwake: 1
-  m_Volume: 1
+  m_Volume: 0.15
   m_Pitch: 1
   Loop: 0
   Mute: 0
