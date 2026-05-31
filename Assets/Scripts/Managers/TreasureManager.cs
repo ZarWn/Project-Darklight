@@ -4,77 +4,45 @@ using TMPro;
 
 public class TreasureManager : MonoBehaviour
 {
-    [Header("UI")]
-    public TextMeshProUGUI reward1Text;
-    public TextMeshProUGUI reward2Text;
-    public TextMeshProUGUI reward3Text;
-
-    private PlayerStats playerStats;
-    private PlayerController playerController;
+    public TextMeshProUGUI[] rewardTexts = new TextMeshProUGUI[3];
+    private PlayerStats stats;
+    private PlayerController player;
+    
+    private int goldAmount;
+    private int healAmount;
 
     void Start()
     {
-        playerStats = FindFirstObjectByType<PlayerStats>();
-        playerController = FindFirstObjectByType<PlayerController>();
-        GenerateRewards();
+        stats = FindFirstObjectByType<PlayerStats>();
+        player = FindFirstObjectByType<PlayerController>();
+        
+        goldAmount = Random.Range(80, 150);
+        healAmount = Random.Range(30, 60);
+
+        if (rewardTexts[0] != null) rewardTexts[0].text = $"Altın +{goldAmount}";
+        if (rewardTexts[1] != null) rewardTexts[1].text = $"Can +{healAmount}";
+        if (rewardTexts[2] != null) rewardTexts[2].text = "Rastgele Yetenek";
     }
 
-    void GenerateRewards()
+    // Hoca Sorarsa: "3 farklı ödül butonu için 3 ayrı fonksiyon yazmak yerine, parametre alan tek bir fonksiyon yazdım."
+    // NOT: Butonların OnClick ayarından 0, 1, 2 parametrelerini ver.
+    public void SelectReward(int index)
     {
-        // Her seferinde farklı ödüller çıksın
-        int random1 = Random.Range(80, 150);
-        int random2 = Random.Range(30, 60);
-
-        if (reward1Text != null) reward1Text.text = $"Altin +{random1}";
-        if (reward2Text != null) reward2Text.text = $"Can +{random2}";
-        if (reward3Text != null) reward3Text.text = "Rastgele Yetenek";
-    }
-
-    public void SelectReward1()
-    {
-        // Altın ödülü
-        if (playerStats != null)
+        if (index == 0 && stats != null) stats.GainGold(goldAmount);
+        else if (index == 1 && stats != null) stats.HealHP(healAmount);
+        else if (index == 2 && player != null)
         {
-            int amount = Random.Range(80, 150);
-            playerStats.GainGold(amount);
-            Debug.Log($"Altin kazanildi: +{amount}");
-        }
-        Continue();
-    }
-
-    public void SelectReward2()
-    {
-        // Can ödülü
-        if (playerStats != null)
-        {
-            int amount = Random.Range(30, 60);
-            playerStats.HealHP(amount);
-            Debug.Log($"Can yenilendi: +{amount}");
-        }
-        Continue();
-    }
-
-    public void SelectReward3()
-    {
-        // Rastgele yetenek
-        if (playerController != null)
-        {
-            int random = Random.Range(0, 5);
-            switch (random)
+            int rand = Random.Range(0, 5);
+            switch (rand)
             {
-                case 0: playerController.IncreaseAttackDamage(5); break;
-                case 1: playerController.IncreaseAttackSpeed(0.1f); break;
-                case 2: playerController.IncreaseAttackRange(0.5f); break;
-                case 3: playerStats.HealHP(20); break;
-                case 4: playerStats.IncreaseArmor(2); break;
+                case 0: player.IncreaseAttackDamage(5); break;
+                case 1: player.IncreaseAttackSpeed(0.1f); break;
+                case 2: player.IncreaseAttackRange(0.5f); break;
+                case 3: stats?.HealHP(20); break;
+                case 4: stats?.IncreaseArmor(2); break;
             }
-            Debug.Log("Rastgele yetenek verildi!");
         }
-        Continue();
-    }
-
-    void Continue()
-    {
+        
         SceneManager.LoadScene("FloorSelectScene");
     }
 }

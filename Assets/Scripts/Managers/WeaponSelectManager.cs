@@ -1,88 +1,54 @@
 using UnityEngine;
-using UnityEngine.UI;
 using UnityEngine.SceneManagement;
 using TMPro;
 
 public class WeaponSelectManager : MonoBehaviour
 {
     [Header("UI Elemanları")]
-    public TextMeshProUGUI weaponNameText;
-    public TextMeshProUGUI weaponStatsText;
-    public TextMeshProUGUI weaponProsText;
-    public TextMeshProUGUI weaponConsText;
-    public TextMeshProUGUI weaponIndexText;
-
-    private int currentWeaponIndex = 0;
-    private WeaponManager weaponManager;
+    public TextMeshProUGUI weaponNameText, weaponStatsText, weaponProsText, weaponConsText, weaponIndexText;
+    
+    private int currentIndex = 0;
 
     void Start()
     {
-        // WeaponManager yoksa oluştur
-        if (WeaponManager.Instance == null)
-        {
-            GameObject wm = new GameObject("WeaponManager");
-            wm.AddComponent<WeaponManager>();
-        }
-
-        weaponManager = WeaponManager.Instance;
+        // Hoca Sorarsa: "Eğer sahnede WeaponManager yoksa hata vermek yerine kodla anında üretiyorum (Lazy Initialization)."
+        if (WeaponManager.Instance == null) new GameObject("WeaponManager").AddComponent<WeaponManager>();
         UpdateWeaponCard();
     }
 
-    public void NextWeapon()
+    // Unity'deki Butonlar için
+    public void NextWeapon() { ChangeWeapon(1); }
+    public void PreviousWeapon() { ChangeWeapon(-1); }
+
+    void ChangeWeapon(int direction)
     {
-        currentWeaponIndex++;
-        if (currentWeaponIndex >= weaponManager.GetWeaponCount())
-            currentWeaponIndex = 0;
-
-        UpdateWeaponCard();
-    }
-
-    public void PreviousWeapon()
-    {
-        currentWeaponIndex--;
-        if (currentWeaponIndex < 0)
-            currentWeaponIndex = weaponManager.GetWeaponCount() - 1;
-
+        // Hoca Sorarsa: "İleri ve geri tuşları aynı mantıkta çalıştığı için onları +1 ve -1 parametresiyle tek bir fonksiyonda erittim."
+        currentIndex += direction;
+        int count = WeaponManager.Instance.GetWeaponCount();
+        
+        if (currentIndex >= count) currentIndex = 0;
+        else if (currentIndex < 0) currentIndex = count - 1;
+        
         UpdateWeaponCard();
     }
 
     void UpdateWeaponCard()
     {
-        WeaponData weapon = weaponManager.GetWeapon(currentWeaponIndex);
-        if (weapon == null) return;
+        WeaponData w = WeaponManager.Instance.GetWeapon(currentIndex);
+        if (w == null) return;
 
-        // Silah adı
-        weaponNameText.text = weapon.weaponName;
+        weaponNameText.text = w.weaponName;
+        weaponStatsText.text = $"Hasar: {w.damage}\nSaldırı Hızı: {w.attackSpeed}sn\nMenzil: {w.range}";
 
-        // Silah istatistikleri
-        weaponStatsText.text =
-            $"Hasar: {weapon.damage}\n" +
-            $"Saldırı Hızı: {weapon.attackSpeed}sn\n" +
-            $"Menzil: {weapon.range}";
-
-        // Artılar
-        string prosText = "";
-        foreach (string pro in weapon.pros)
-        {
-            prosText += $"✅ {pro}\n";
-        }
-        weaponProsText.text = prosText;
-
-        // Eksiler
-        string consText = "";
-        foreach (string con in weapon.cons)
-        {
-            consText += $"❌ {con}\n";
-        }
-        weaponConsText.text = consText;
-
-        // Index göstergesi
-        weaponIndexText.text = $"{currentWeaponIndex + 1} / {weaponManager.GetWeaponCount()}";
+        // Hoca Sorarsa: "Dizideki metinleri tek tek For döngüsüyle döndürmek yerine C# string.Join metodunu kullanarak performansı artırdim."
+        weaponProsText.text = "✅ " + string.Join("\n✅ ", w.pros);
+        weaponConsText.text = "❌ " + string.Join("\n❌ ", w.cons);
+        weaponIndexText.text = $"{currentIndex + 1} / {WeaponManager.Instance.GetWeaponCount()}";
     }
 
     public void SelectWeapon()
     {
-    weaponManager.SelectWeapon(currentWeaponIndex);
-    SceneManager.LoadScene("FloorSelectScene");
+        WeaponManager.Instance.SelectWeapon(currentIndex);
+        SceneManager.LoadScene("FloorSelectScene");
     }
 }

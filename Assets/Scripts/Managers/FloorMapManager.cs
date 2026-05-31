@@ -47,7 +47,6 @@ public class FloorMapManager : MonoBehaviour
     {
         floorManager = FloorManager.Instance;
         
-        // Güvenlik Kontrolü
         if (floorManager == null)
         {
             GameObject fm = new GameObject("FloorManager");
@@ -72,7 +71,6 @@ public class FloorMapManager : MonoBehaviour
         allNodes.Clear();
         int totalFloors = floorManager.GetTotalFloors();
 
-        // A) Düğümleri üret
         for (int floor = 0; floor < totalFloors; floor++)
         {
             List<FloorManager.FloorType> options = floorManager.GetFloorOptions(floor);
@@ -92,13 +90,11 @@ public class FloorMapManager : MonoBehaviour
             allNodes.Add(floorNodes);
         }
 
-        // B) Düğümleri RASTGELE Birbirine Bağla
         for (int floor = 0; floor < totalFloors - 1; floor++)
         {
             List<MapNode> currFloor = allNodes[floor];
             List<MapNode> nextFloor = allNodes[floor + 1];
 
-            // Eğer sonraki kat Final Boss ise (tek düğüm), hepsi ona bağlanır
             if (nextFloor.Count == 1)
             {
                 foreach (var node in currFloor) 
@@ -107,7 +103,6 @@ public class FloorMapManager : MonoBehaviour
                 continue;
             }
 
-            // Kural 1: Üst kattaki HER odanın, alt katta rastgele BİR atası (bağlantısı) olmak zorunda
             foreach (var nextNode in nextFloor)
             {
                 MapNode randomParent = currFloor[Random.Range(0, currFloor.Count)];
@@ -115,7 +110,6 @@ public class FloorMapManager : MonoBehaviour
                     randomParent.nextNodes.Add(nextNode);
             }
 
-            // Kural 2: Alt kattaki HER odanın, üst katta rastgele BİR hedefi olmak zorunda (çıkmaz sokak kalmasın)
             foreach (var currNode in currFloor)
             {
                 if (currNode.nextNodes.Count == 0)
@@ -124,7 +118,6 @@ public class FloorMapManager : MonoBehaviour
                     currNode.nextNodes.Add(randomTarget);
                 }
                 
-                // Kural 3: Biraz daha organik durması için %40 ihtimalle ekstra rastgele bir bağlantı daha at
                 if (Random.value > 0.6f)
                 {
                     MapNode randomTarget = nextFloor[Random.Range(0, nextFloor.Count)];
@@ -143,7 +136,6 @@ public class FloorMapManager : MonoBehaviour
         float totalHeight = totalFloors * floorHeight + bottomPadding * 2;
         mapContent.sizeDelta = new Vector2(mapContent.sizeDelta.x, totalHeight);
 
-        // Çizgileri Çiz
         foreach (var floorList in allNodes)
         {
             foreach (var node in floorList)
@@ -155,7 +147,6 @@ public class FloorMapManager : MonoBehaviour
             }
         }
 
-        // Düğümleri Çiz
         foreach (var floorList in allNodes)
         {
             foreach (var node in floorList)

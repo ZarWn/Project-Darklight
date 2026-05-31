@@ -204,12 +204,12 @@ MonoBehaviour:
       m_Calls:
       - m_Target: {fileID: 1597731958}
         m_TargetAssemblyTypeName: TreasureManager, Assembly-CSharp
-        m_MethodName: SelectReward2
-        m_Mode: 1
+        m_MethodName: SelectReward
+        m_Mode: 3
         m_Arguments:
           m_ObjectArgument: {fileID: 0}
           m_ObjectArgumentAssemblyTypeName: UnityEngine.Object, UnityEngine
-          m_IntArgument: 0
+          m_IntArgument: 1
           m_FloatArgument: 0
           m_StringArgument: 
           m_BoolArgument: 0
@@ -474,12 +474,12 @@ MonoBehaviour:
       m_Calls:
       - m_Target: {fileID: 1597731958}
         m_TargetAssemblyTypeName: TreasureManager, Assembly-CSharp
-        m_MethodName: SelectReward3
-        m_Mode: 1
+        m_MethodName: SelectReward
+        m_Mode: 3
         m_Arguments:
           m_ObjectArgument: {fileID: 0}
           m_ObjectArgumentAssemblyTypeName: UnityEngine.Object, UnityEngine
-          m_IntArgument: 0
+          m_IntArgument: 2
           m_FloatArgument: 0
           m_StringArgument: 
           m_BoolArgument: 0
@@ -744,8 +744,8 @@ MonoBehaviour:
       m_Calls:
       - m_Target: {fileID: 1597731958}
         m_TargetAssemblyTypeName: TreasureManager, Assembly-CSharp
-        m_MethodName: SelectReward1
-        m_Mode: 1
+        m_MethodName: SelectReward
+        m_Mode: 3
         m_Arguments:
           m_ObjectArgument: {fileID: 0}
           m_ObjectArgumentAssemblyTypeName: UnityEngine.Object, UnityEngine
@@ -1232,9 +1232,10 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 26057f5b82cf21d41b57c6b91ba38ae4, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::TreasureManager
-  reward1Text: {fileID: 1625968614}
-  reward2Text: {fileID: 140708068}
-  reward3Text: {fileID: 1468456706}
+  rewardTexts:
+  - {fileID: 1625968614}
+  - {fileID: 140708068}
+  - {fileID: 1468456706}
 --- !u!4 &1597731959
 Transform:
   m_ObjectHideFlags: 0

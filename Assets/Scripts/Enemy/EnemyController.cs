@@ -5,6 +5,7 @@ public class EnemyController : MonoBehaviour
     private Transform playerTransform;
     private EnemyStats stats;
     private Animator enemyAnimator; 
+    private Rigidbody2D rb; // FİZİK MOTORU EKLENDİ
 
     [Header("Hareket Ayarları")]
     public float stopDistance = 1.5f;   
@@ -18,11 +19,10 @@ public class EnemyController : MonoBehaviour
     public bool isDead = false;         
 
     [Header("Ses Ayarları")]
-    public AudioClip walkLoopSound; // Artık yaklaşırken çıkacak yürüme/hırıltı sesi
+    public AudioClip walkLoopSound; 
     public AudioClip enemyAttackSound; 
     private AudioSource audioSource;   
 
-    // Sadece yürürken çalışacak ses zamanlayıcıları
     private float moveGroanTimer = 0f;
     private float nextMoveGroanTime = 0f;
 
@@ -31,16 +31,12 @@ public class EnemyController : MonoBehaviour
         stats = GetComponent<EnemyStats>();
         enemyAnimator = GetComponent<Animator>(); 
         audioSource = GetComponent<AudioSource>(); 
+        rb = GetComponent<Rigidbody2D>(); // Rigidbody Tanımlandı
 
         GameObject player = GameObject.FindGameObjectWithTag("Player");
-        if (player != null)
-        {
-            playerTransform = player.transform;
-        }
+        if (player != null) playerTransform = player.transform;
 
         attackTimer = attackInterval; 
-        
-        // Karakter doğduğunda ilk yürüme sesini 1-3 saniye arasında hızlıca versin
         nextMoveGroanTime = Random.Range(1f, 3f);
     }
 
@@ -50,35 +46,32 @@ public class EnemyController : MonoBehaviour
 
         float distanceToPlayer = Vector2.Distance(transform.position, playerTransform.position);
 
-        // EĞER OYUNCUYA UZAKSA VE YÜRÜYORSA
         if (distanceToPlayer > stopDistance)
         {
             MoveTowardsPlayer();
             attackTimer = attackInterval; 
 
-            // --- YENİ: SADECE YAKLAŞIRKEN ÇIKAN DENGELİ SES ---
             moveGroanTimer += Time.deltaTime;
             if (moveGroanTimer >= nextMoveGroanTime)
             {
                 moveGroanTimer = 0f;
-                // Bir sonraki sesi 3 ile 7 saniye arası bekle (çok sık olmaması için)
                 nextMoveGroanTime = Random.Range(3f, 7f); 
 
                 if (audioSource != null && walkLoopSound != null)
                 {
-                    audioSource.pitch = Random.Range(0.85f, 1.15f); // Farklı zombi ses tonları
-                    audioSource.PlayOneShot(walkLoopSound, 0.2f);   // Sesi %20 seviyesinde kısık çal
+                    audioSource.pitch = Random.Range(0.85f, 1.15f); 
+                    audioSource.PlayOneShot(walkLoopSound, 0.2f);   
                 }
             }
-            // --------------------------------------------------
         }
-        // EĞER MENZİLE GİRDİYSE VE DURUYORSA/SALDIRIYORSA
         else
         {
-            moveGroanTimer = 0f; // Durduğu için yürüme sesi sayacını iptal et
+            moveGroanTimer = 0f; 
+            
+            // --- HATA ÇÖZÜMÜ: OYUNCUYA YAKLAŞINCA FREN YAP ---
+            if (rb != null) rb.linearVelocity = new Vector2(0f, rb.linearVelocity.y);
 
             attackTimer += Time.deltaTime;
-            
             if (attackTimer >= attackInterval)
             {
                 AttackPlayer();
@@ -91,47 +84,38 @@ public class EnemyController : MonoBehaviour
     {
         if (stats == null) return;
 
-        Vector2 currentPos = transform.position;
-        Vector2 targetPos = playerTransform.position;
-        Vector2 direction = (targetPos - currentPos).normalized;
+        // Sadece X (Sağ-Sol) ekseninde yönü bulur (-1 veya 1)
+        float dirX = Mathf.Sign(playerTransform.position.x - transform.position.x);
 
-        float newX = currentPos.x + direction.x * stats.moveSpeed * Time.deltaTime;
-        transform.position = new Vector3(newX, currentPos.y, 0f);
+        // --- HATA ÇÖZÜMÜ 2: UÇAN DÜŞMANLAR ---
+        // Hoca Sorarsa: "Düşmanları 'transform.position' ile itmek, zemin çarpışmalarıyla birleşince havaya fırlamalarına neden oluyordu. Y eksenini (Aşağı düşüşü) yerçekimine bırakıp sadece X ekseninde Rigidbody.linearVelocity ile güç uygulayarak sorunu kökünden çözdüm."
+        if (rb != null)
+        {
+            rb.linearVelocity = new Vector2(dirX * stats.moveSpeed, rb.linearVelocity.y);
+        }
 
-        float currentScaleX = Mathf.Abs(transform.localScale.x); 
-        float currentScaleY = transform.localScale.y;
-        float currentScaleZ = transform.localScale.z;
-
-        if (direction.x > 0)
-            transform.localScale = new Vector3(currentScaleX, currentScaleY, currentScaleZ);
-        else if (direction.x < 0)
-            transform.localScale = new Vector3(-currentScaleX, currentScaleY, currentScaleZ);
+        // Yönüne göre çevir (Flip)
+        Vector3 scale = transform.localScale;
+        scale.x = (dirX > 0) ? Mathf.Abs(scale.x) : -Mathf.Abs(scale.x);
+        transform.localScale = scale;
     }
 
     void AttackPlayer()
     {
-        if (enemyAnimator != null)
-        {
-            enemyAnimator.SetTrigger("Attack");
-        }
+        if (enemyAnimator != null) enemyAnimator.SetTrigger("Attack");
 
         if (audioSource != null && enemyAttackSound != null)
         {
             audioSource.pitch = Random.Range(0.9f, 1.1f);
-            audioSource.PlayOneShot(enemyAttackSound, 0.4f); // Saldırı sesini %40 seviyesinde çal
+            audioSource.PlayOneShot(enemyAttackSound, 0.4f); 
         }
 
         if (PlayerStats.Instance != null)
-        {
             PlayerStats.Instance.TakeDamage(damageAmount);
-        }
         else
         {
             PlayerStats pStats = playerTransform.GetComponent<PlayerStats>();
-            if (pStats != null)
-            {
-                pStats.TakeDamage(damageAmount);
-            }
+            if (pStats != null) pStats.TakeDamage(damageAmount);
         }
     }
 
@@ -140,20 +124,12 @@ public class EnemyController : MonoBehaviour
         if (isDead) return;
         isDead = true;
 
-        if (audioSource != null)
-        {
-            audioSource.Stop(); 
-        }
-
-        if (enemyAnimator != null)
-        {
-            enemyAnimator.SetTrigger("Die");
-        }
+        if (audioSource != null) audioSource.Stop(); 
+        if (enemyAnimator != null) enemyAnimator.SetTrigger("Die");
 
         Collider2D col = GetComponent<Collider2D>();
         if (col != null) col.enabled = false;
 
-        Rigidbody2D rb = GetComponent<Rigidbody2D>();
         if (rb != null)
         {
             rb.linearVelocity = Vector2.zero;
@@ -163,7 +139,6 @@ public class EnemyController : MonoBehaviour
 
         gameObject.layer = 0; 
         gameObject.tag = "Untagged"; 
-
         Destroy(gameObject, 1f); 
     }
 }

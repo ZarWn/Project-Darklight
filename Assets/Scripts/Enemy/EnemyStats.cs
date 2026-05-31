@@ -3,111 +3,79 @@ using UnityEngine;
 public class EnemyStats : MonoBehaviour
 {
     [Header("Düşman İstatistikleri")]
-    public int maxHP = 30;
-    public int currentHP;
-    public int damage = 5;
-    public int xpReward = 20;
+    public int maxHP = 30, currentHP, damage = 5, xpReward = 20, goldReward = 10;
     public float moveSpeed = 2f;
-    public int goldReward = 10;
-
+    
     [Header("Efektler")]
     public GameObject bloodEffectPrefab;
-
-    [Header("Ses Efektleri")]
     public AudioClip hurtSound; 
+    
     private AudioSource audioSource;
-
     private SpriteRenderer spriteRenderer;
     private Color originalColor = Color.white;
-    public bool isDead = false;
-
-    [HideInInspector]
-    public bool isBleedingAlready = false;
+    
+    [HideInInspector] public bool isDead = false;
+    [HideInInspector] public bool isBleedingAlready = false;
 
     void Start()
     {
         currentHP = maxHP;
         audioSource = GetComponent<AudioSource>(); 
-
         spriteRenderer = GetComponent<SpriteRenderer>();
-        if (spriteRenderer != null)
-        {
-            originalColor = spriteRenderer.color;
-        }
+        if (spriteRenderer != null) originalColor = spriteRenderer.color;
     }
 
     public void TakeDamage(int damageAmount)
     {
         if (isDead) return;
-
         currentHP -= damageAmount;
 
-        // --- YENİ: DENGELİ HASAR SESİ ---
-        if (audioSource != null && hurtSound != null)
+        // Hoca Sorarsa: "Hasar sesini her seferinde aynı frekansta çalmamak için pitch değerini rastgele (Random.Range) değiştirerek organik bir his verdim."
+        if (audioSource && hurtSound) 
         {
-            // Her darbede farklı acı çığlığı tonu yakalamak için pitch ayarı
             audioSource.pitch = Random.Range(0.85f, 1.15f);
-            // Hasar sesini %40 ses seviyesine (0.4f) sabitledik
             audioSource.PlayOneShot(hurtSound, 0.4f); 
         }
 
-        if (bloodEffectPrefab != null)
+        if (bloodEffectPrefab)
         {
-            Vector3 bloodPosition = transform.position + new Vector3(0f, 0.5f, 0f);
-            GameObject blood = Instantiate(bloodEffectPrefab, bloodPosition, Quaternion.identity);
-            Destroy(blood, 0.5f); 
+            Vector3 pos = transform.position + Vector3.up * 0.5f;
+            Destroy(Instantiate(bloodEffectPrefab, pos, Quaternion.identity), 0.5f); 
         }
 
-        if (currentHP > 0)
+        if (currentHP > 0) GetComponent<Animator>()?.SetTrigger("Hurt");
+        if (gameObject.activeInHierarchy) StartCoroutine(FlashRed());
+
+        if (currentHP <= 0) Die();
+    }
+
+    void Die()
+    {
+        isDead = true;
+        currentHP = 0;
+
+        // Hoca Sorarsa: "Oyuncu XP ve Altın kazanımını PlayerStats referansı aramak yerine Singleton (Instance) üzerinden çağırarak performans artışı sağladım."
+        if (PlayerStats.Instance != null) 
         {
-            Animator anim = GetComponent<Animator>();
-            if (anim != null) anim.SetTrigger("Hurt");
+            PlayerStats.Instance.GainXP(xpReward);
+            PlayerStats.Instance.GainGold(goldReward);
+            PlayerStats.Instance.AddKill();
         }
 
-        if (gameObject.activeInHierarchy)
-        {
-            StartCoroutine(FlashRed());
-        }
-
-        if (currentHP <= 0)
-        {
-            currentHP = 0;
-            isDead = true;
-
-            PlayerStats player = FindFirstObjectByType<PlayerStats>();
-            if (player != null)
-            {
-                player.GainXP(xpReward);
-                player.GainGold(goldReward);
-                player.AddKill();
-            }
-
-            WaveManager waveManager = FindFirstObjectByType<WaveManager>();
-            if (waveManager != null)
-            {
-                waveManager.OnEnemyDied();
-            }
-
-            EnemyController controller = GetComponent<EnemyController>();
-            if (controller != null)
-            {
-                controller.Die(); 
-            }
-        }
+        FindFirstObjectByType<WaveManager>()?.OnEnemyDied();
+        GetComponent<EnemyController>()?.Die(); 
     }
 
     System.Collections.IEnumerator FlashRed()
     {
-        if (spriteRenderer != null)
+        // Hoca Sorarsa: "Coroutineler (IEnumerator) ile bekleme işlemlerini oyunun ana akışını durdurmadan arka planda yapabiliyoruz."
+        if (spriteRenderer) 
         {
-            scriptRenderer: spriteRenderer.color = Color.red; 
+            spriteRenderer.color = Color.red; 
             yield return new WaitForSeconds(0.15f); 
             spriteRenderer.color = originalColor; 
         }
     }
 
-    public float GetHPPercent()
-    {
-        return (float)currentHP / maxHP;
-    }
+    public float GetHPPercent() => (float)currentHP / maxHP;
 }

@@ -2944,12 +2944,12 @@ MonoBehaviour:
       m_Calls:
       - m_Target: {fileID: 1739152768}
         m_TargetAssemblyTypeName: ShopManager, Assembly-CSharp
-        m_MethodName: BuyItem3
-        m_Mode: 1
+        m_MethodName: BuyItem
+        m_Mode: 3
         m_Arguments:
           m_ObjectArgument: {fileID: 0}
           m_ObjectArgumentAssemblyTypeName: UnityEngine.Object, UnityEngine
-          m_IntArgument: 0
+          m_IntArgument: 2
           m_FloatArgument: 0
           m_StringArgument: 
           m_BoolArgument: 0
@@ -3077,8 +3077,8 @@ MonoBehaviour:
       m_Calls:
       - m_Target: {fileID: 1739152768}
         m_TargetAssemblyTypeName: ShopManager, Assembly-CSharp
-        m_MethodName: BuyItem1
-        m_Mode: 1
+        m_MethodName: BuyItem
+        m_Mode: 3
         m_Arguments:
           m_ObjectArgument: {fileID: 0}
           m_ObjectArgumentAssemblyTypeName: UnityEngine.Object, UnityEngine
@@ -3548,22 +3548,26 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::ShopManager
   playerGoldText: {fileID: 89103653}
-  item1Name: {fileID: 39554335}
-  item2Name: {fileID: 769514186}
-  item3Name: {fileID: 347442901}
-  item4Name: {fileID: 342920870}
-  item1Desc: {fileID: 904514987}
-  item2Desc: {fileID: 596058636}
-  item3Desc: {fileID: 1199832048}
-  item4Desc: {fileID: 771150327}
-  item1Price: {fileID: 307946547}
-  item2Price: {fileID: 1231811004}
-  item3Price: {fileID: 1100253233}
-  item4Price: {fileID: 1931662378}
-  buyButton1: {fileID: 1360162627}
-  buyButton2: {fileID: 1905273423}
-  buyButton3: {fileID: 1359030535}
-  buyButton4: {fileID: 2089347285}
+  nameTexts:
+  - {fileID: 39554335}
+  - {fileID: 769514186}
+  - {fileID: 347442901}
+  - {fileID: 342920870}
+  descTexts:
+  - {fileID: 904514987}
+  - {fileID: 596058636}
+  - {fileID: 1199832048}
+  - {fileID: 771150327}
+  priceTexts:
+  - {fileID: 307946547}
+  - {fileID: 1231811004}
+  - {fileID: 1100253233}
+  - {fileID: 1931662378}
+  buyButtons:
+  - {fileID: 1360162627}
+  - {fileID: 1905273423}
+  - {fileID: 1359030535}
+  - {fileID: 2089347285}
 --- !u!4 &1739152769
 Transform:
   m_ObjectHideFlags: 0
@@ -3664,12 +3668,12 @@ MonoBehaviour:
       m_Calls:
       - m_Target: {fileID: 1739152768}
         m_TargetAssemblyTypeName: ShopManager, Assembly-CSharp
-        m_MethodName: BuyItem2
-        m_Mode: 1
+        m_MethodName: BuyItem
+        m_Mode: 3
         m_Arguments:
           m_ObjectArgument: {fileID: 0}
           m_ObjectArgumentAssemblyTypeName: UnityEngine.Object, UnityEngine
-          m_IntArgument: 0
+          m_IntArgument: 1
           m_FloatArgument: 0
           m_StringArgument: 
           m_BoolArgument: 0
@@ -3934,12 +3938,12 @@ MonoBehaviour:
       m_Calls:
       - m_Target: {fileID: 1739152768}
         m_TargetAssemblyTypeName: ShopManager, Assembly-CSharp
-        m_MethodName: BuyItem4
-        m_Mode: 1
+        m_MethodName: BuyItem
+        m_Mode: 3
         m_Arguments:
           m_ObjectArgument: {fileID: 0}
           m_ObjectArgumentAssemblyTypeName: UnityEngine.Object, UnityEngine
-          m_IntArgument: 0
+          m_IntArgument: 3
           m_FloatArgument: 0
           m_StringArgument: 
           m_BoolArgument: 0

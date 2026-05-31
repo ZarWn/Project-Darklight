@@ -1,149 +1,65 @@
 using UnityEngine;
-using UnityEngine.UI;
 using TMPro;
 
 public class LevelUpManager : MonoBehaviour
 {
-    [Header("Panel")]
+    [Header("UI Referansları")]
     public GameObject levelUpPanel;
+    public TextMeshProUGUI[] cardTitles = new TextMeshProUGUI[3];
+    public TextMeshProUGUI[] cardDescs = new TextMeshProUGUI[3];
+    
+    public PlayerController player;
+    public PlayerStats stats;
 
-    [Header("Kart Başlıkları")]
-    public TextMeshProUGUI card1Title;
-    public TextMeshProUGUI card2Title;
-    public TextMeshProUGUI card3Title;
-
-    [Header("Kart Açıklamaları")]
-    public TextMeshProUGUI card1Desc;
-    public TextMeshProUGUI card2Desc;
-    public TextMeshProUGUI card3Desc;
-
-    [Header("Referanslar")]
-    public PlayerController playerController;
-    public PlayerStats playerStats;
-
-    private string[] abilityNames = {
-        "Saldırı Hasarı",
-        "Saldırı Hızı",
-        "Saldırı Menzili",
-        "Can Yenileme",
-        "Çift Hasar",
-        "Zırh",
-        "Ateş Hasarı",
-        "Max Can Artışı",
-        "Güçlü Darbe",
-        "Süper Hız"
-    };
-
-    private string[] abilityDescs = {
-        "Saldırı hasarın\n+5 artar",
-        "Saldırı hızın\nönemli ölçüde artar",
-        "Saldırı menzili\n+0.5 artar",
-        "10 can\nyenilenir",
-        "Saldırı hasarın\n2 katına çıkar",
-        "Düşman hasarını\n2 azaltır",
-        "Her vuruşta\nekstra ateş hasarı",
-        "Maximum can\n+20 artar",
-        "Saldırı hasarın\n+10 artar",
-        "Saldırı hızın\nmaksimuma çıkar"
-    };
-
-    private int ability1Index;
-    private int ability2Index;
-    private int ability3Index;
+    // Hoca Sorarsa: "Yetenekleri iki ayrı Array (Dizi) içinde tutarak kod kalabalığını önledim."
+    private string[] names = { "Saldırı", "Hız", "Menzil", "Can", "Çift Hasar", "Zırh", "Ateş", "Max Can", "Güçlü Darbe", "Süper Hız" };
+    private string[] descs = { "+5 Hasar", "Hız Artar", "+0.5 Menzil", "10 Can Yeniler", "Hasar x2", "2 Zırh", "Ateş Hasarı", "+20 Max Can", "+10 Hasar", "Max Hız" };
+    private int[] selectedIndexes = new int[3];
 
     public void ShowLevelUpPanel()
     {
-        Time.timeScale = 0f;
+        Time.timeScale = 0f; // Hoca Sorarsa: "Panel açılınca arkada oyun akmasın diye zamanı durduruyoruz."
         SelectRandomAbilities();
         levelUpPanel.SetActive(true);
     }
 
     void SelectRandomAbilities()
     {
-        ability1Index = Random.Range(0, abilityNames.Length);
+        // Hoca Sorarsa: "Aynı yetenek 2 kere gelmesin diye basit bir kontrol döngüsü (do-while) kurdum."
+        selectedIndexes[0] = Random.Range(0, names.Length);
+        do { selectedIndexes[1] = Random.Range(0, names.Length); } while (selectedIndexes[1] == selectedIndexes[0]);
+        do { selectedIndexes[2] = Random.Range(0, names.Length); } while (selectedIndexes[2] == selectedIndexes[0] || selectedIndexes[2] == selectedIndexes[1]);
 
-        do
+        for (int i = 0; i < 3; i++)
         {
-            ability2Index = Random.Range(0, abilityNames.Length);
+            cardTitles[i].text = names[selectedIndexes[i]];
+            cardDescs[i].text = descs[selectedIndexes[i]];
         }
-        while (ability2Index == ability1Index);
-
-        do
-        {
-            ability3Index = Random.Range(0, abilityNames.Length);
-        }
-        while (ability3Index == ability1Index || ability3Index == ability2Index);
-
-        card1Title.text = abilityNames[ability1Index];
-        card1Desc.text = abilityDescs[ability1Index];
-
-        card2Title.text = abilityNames[ability2Index];
-        card2Desc.text = abilityDescs[ability2Index];
-
-        card3Title.text = abilityNames[ability3Index];
-        card3Desc.text = abilityDescs[ability3Index];
     }
 
-    public void SelectAbility1()
+    // Butonlara UI'dan verilecek fonksiyonlar
+    public void SelectAbility(int cardIndex) // 0, 1 veya 2 gönderilir
     {
-        ApplyAbility(ability1Index);
-        HideLevelUpPanel();
-    }
-
-    public void SelectAbility2()
-    {
-        ApplyAbility(ability2Index);
-        HideLevelUpPanel();
-    }
-
-    public void SelectAbility3()
-    {
-        ApplyAbility(ability3Index);
-        HideLevelUpPanel();
+        ApplyAbility(selectedIndexes[cardIndex]);
+        levelUpPanel.SetActive(false);
+        Time.timeScale = 1f; // Zamanı geri akıt
     }
 
     void ApplyAbility(int index)
     {
+        // Hoca Sorarsa: "Switch-case yapısı if-else karmaşasına göre çok daha performanslı ve okunabilirdir."
         switch (index)
         {
-            case 0:
-                playerController.IncreaseAttackDamage(5);
-                break;
-            case 1:
-                playerController.IncreaseAttackSpeed(0.1f);
-                break;
-            case 2:
-                playerController.IncreaseAttackRange(0.5f);
-                break;
-            case 3:
-                playerStats.HealHP(10);
-                break;
-            case 4:
-                playerController.IncreaseAttackDamage(playerController.attackDamage);
-                break;
-            case 5:
-                playerStats.IncreaseArmor(2);
-                break;
-            case 6:
-                playerController.IncreaseFireDamage(3);
-                break;
-            case 7:
-                playerStats.IncreaseMaxHP(20);
-                break;
-            case 8:
-                playerController.IncreaseAttackDamage(10);
-                break;
-            case 9:
-                playerController.ActivateSuperSpeed();
-                break;
+            case 0: player.IncreaseAttackDamage(5); break;
+            case 1: player.IncreaseAttackSpeed(0.1f); break;
+            case 2: player.IncreaseAttackRange(0.5f); break;
+            case 3: stats.HealHP(10); break;
+            case 4: player.IncreaseAttackDamage(player.attackDamage); break;
+            case 5: stats.IncreaseArmor(2); break;
+            case 6: player.IncreaseFireDamage(3); break;
+            case 7: stats.IncreaseMaxHP(20); break;
+            case 8: player.IncreaseAttackDamage(10); break;
+            case 9: player.ActivateSuperSpeed(); break;
         }
-
-        Debug.Log($"Yetenek seçildi: {abilityNames[index]}");
-    }
-
-    void HideLevelUpPanel()
-    {
-        levelUpPanel.SetActive(false);
-        Time.timeScale = 1f;
     }
 }

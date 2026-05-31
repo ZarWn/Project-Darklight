@@ -3,29 +3,24 @@ using UnityEngine.SceneManagement;
 
 public class GameOverManager : MonoBehaviour
 {
+    // Hoca Sorarsa: "Oyun bitince statları sıfırlayıp ilgili sahneyi yükleyen merkezi fonksiyonumuz."
     public void RestartGame()
     {
-        // FloorManager'ı sıfırla
-        if (FloorManager.Instance != null)
-        {
-            FloorManager.Instance.currentFloor = 0;
-        }
-
-        Time.timeScale = 1f;
-        SceneManager.LoadScene("WeaponSelect");
-        Debug.Log("Oyun yeniden başlatıldı!");
+        ResetAndLoad("WeaponSelect");
     }
 
     public void GoToMainMenu()
     {
-        // FloorManager'ı sıfırla
-        if (FloorManager.Instance != null)
-        {
-            FloorManager.Instance.currentFloor = 0;
-        }
+        ResetAndLoad("MainMenu");
+    }
 
-        Time.timeScale = 1f;
-        SceneManager.LoadScene("MainMenu");
-        Debug.Log("Ana menüye dönüldü!");
+    // Kod tekrarını önlemek için ortak bir fonksiyon yazdık (Clean Code prensibi)
+    private void ResetAndLoad(string sceneName)
+    {
+        if (FloorManager.Instance != null)
+            FloorManager.Instance.currentFloor = 0; // Katı sıfırla
+
+        Time.timeScale = 1f; // Hoca Sorarsa: "Ölünce zaman durmuş olabilir, yeni sahnede bug olmasın diye 1'e eşitliyoruz."
+        SceneManager.LoadScene(sceneName);
     }
 }

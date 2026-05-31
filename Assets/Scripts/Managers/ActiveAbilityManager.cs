@@ -22,18 +22,13 @@ public class ActiveAbilityManager : MonoBehaviour
     public AudioClip battleCrySFX;        
     private AudioSource audioSource;       
 
-    [Header("Göksel Çarpma (Çoklu Yıldırım) Ayarları")]
+    [Header("Göksel Çarpma Ayarları")]
     public int celestialStrikeCount = 4;       
     public float celestialStrikeRange = 8f;     
     public float timeBetweenStrikes = 0.25f;    
     public float strikeDamageRadius = 2.5f;     
-    
-    // --- YENİ: YILDIRIMIN YÜKSEKLİK VE BOYUT AYARLARI ---
-    public float celestialStrikeYOffset = 1f;   // Yıldırımı aşağı/yukarı kaydırmak için (Örn: -2f yaparsan yere çöker)
-    public float celestialStrikeScale = 5f;     // Yıldırımın devasalık boyutu (Örn: 4 veya 5 yapabilirsin)
-
-    private PlayerStats playerStats;
-    private PlayerController playerController;
+    public float celestialStrikeYOffset = 1f;   
+    public float celestialStrikeScale = 5f;     
 
     public delegate void OnAbilityCast(int slot);
     public static event OnAbilityCast onAbilityCast;
@@ -56,21 +51,13 @@ public class ActiveAbilityManager : MonoBehaviour
         InitializeAbilities();
     }
 
-    private void OnEnable()
-    {
-        SceneManager.sceneLoaded += OnSceneLoaded;
-    }
-
-    private void OnDisable()
-    {
-        SceneManager.sceneLoaded -= OnSceneLoaded;
-    }
+    private void OnEnable() => SceneManager.sceneLoaded += OnSceneLoaded;
+    private void OnDisable() => SceneManager.sceneLoaded -= OnSceneLoaded;
 
     private void OnSceneLoaded(Scene scene, LoadSceneMode mode)
     {
-        playerStats = FindFirstObjectByType<PlayerStats>();
-        playerController = FindFirstObjectByType<PlayerController>();
-
+        // HATA ÇÖZÜMÜ: Artık FindFirstObjectByType ile sahneyi tarayıp yanlış klonu almıyoruz.
+        // Doğrudan ResetAllCooldowns çalıştırıyoruz, hedefleri Instance üzerinden bulacak.
         ResetAllCooldowns();
     }
 
@@ -91,18 +78,13 @@ public class ActiveAbilityManager : MonoBehaviour
     void Start()
     {
         audioSource = GetComponent<AudioSource>();
-        if (audioSource == null)
-        {
-            audioSource = gameObject.AddComponent<AudioSource>();
-        }
+        if (audioSource == null) audioSource = gameObject.AddComponent<AudioSource>();
         audioSource.playOnAwake = false;
     }
 
     void Update()
     {
-        if (playerStats == null) playerStats = FindFirstObjectByType<PlayerStats>();
-        if (playerController == null) playerController = FindFirstObjectByType<PlayerController>();
-
+        // Update içindeki gereksiz arama fonksiyonları silindi, performans arttı.
         UpdateCooldowns();
     }
 
@@ -143,7 +125,6 @@ public class ActiveAbilityManager : MonoBehaviour
     {
         if (slot < 0 || slot >= 3) return; 
         if (abilities[slot] == null) return;
-
         if (isOnCooldown[slot]) return;
 
         ExecuteAbility(slot);
@@ -166,31 +147,25 @@ public class ActiveAbilityManager : MonoBehaviour
 
     void AbilityCelestialStrike()
     {
-        if (playerController != null) 
-        {
+        // Doğrudan asıl oyuncunun kimliğine (Instance) ulaşıyoruz!
+        if (PlayerController.Instance != null) 
             StartCoroutine(CelestialStrikeCoroutine());
-        }
     }
 
     IEnumerator CelestialStrikeCoroutine()
     {
         LayerMask enemyLayer = LayerMask.GetMask("Enemy");
-        Vector3 playerPos = playerController.transform.position;
+        Vector3 playerPos = PlayerController.Instance.transform.position;
 
         for (int i = 0; i < celestialStrikeCount; i++)
         {
             float randomX = Random.Range(-celestialStrikeRange, celestialStrikeRange);
-            
-            // Oyuncunun ayak hizasına senin verdiğin el yapımı ofseti ekliyoruz
             Vector3 strikePosition = new Vector3(playerPos.x + randomX, playerPos.y + celestialStrikeYOffset, 0f);
 
             if (celestialStrikeVFX != null)
             {
                 GameObject vfx = Instantiate(celestialStrikeVFX, strikePosition, Quaternion.identity);
-                
-                // Animator engelini aşmak için hem parent'ı hem child'ları kökten büyütüyoruz
                 SetVFXScaleRecursively(vfx, celestialStrikeScale);
-                
                 SetVFXSortingBehindPlayer(vfx); 
                 Destroy(vfx, 2f); 
             }
@@ -204,8 +179,7 @@ public class ActiveAbilityManager : MonoBehaviour
             Collider2D[] enemies = Physics2D.OverlapCircleAll(strikePosition, strikeDamageRadius, enemyLayer);
             foreach (Collider2D enemy in enemies)
             {
-                EnemyStats stats = enemy.GetComponent<EnemyStats>();
-                if (stats != null) stats.TakeDamage(100);
+                if (enemy.TryGetComponent(out EnemyStats stats)) stats.TakeDamage(100);
             }
 
             yield return new WaitForSeconds(timeBetweenStrikes);
@@ -214,17 +188,17 @@ public class ActiveAbilityManager : MonoBehaviour
 
     void AbilityAbsoluteShield()
     {
-        if (playerStats != null) StartCoroutine(ShieldCoroutine());
+        if (PlayerStats.Instance != null) StartCoroutine(ShieldCoroutine());
     }
 
     IEnumerator ShieldCoroutine()
     {
-        playerStats.isInvincible = true;
+        PlayerStats.Instance.isInvincible = true;
 
         GameObject activeShield = null;
-        if (absoluteShieldVFX != null && playerController != null)
+        if (absoluteShieldVFX != null && PlayerController.Instance != null)
         {
-            activeShield = Instantiate(absoluteShieldVFX, playerController.transform.position, Quaternion.identity, playerController.transform);
+            activeShield = Instantiate(absoluteShieldVFX, PlayerController.Instance.transform.position, Quaternion.identity, PlayerController.Instance.transform);
             SetVFXSortingBehindPlayer(activeShield); 
         }
 
@@ -236,20 +210,20 @@ public class ActiveAbilityManager : MonoBehaviour
 
         yield return new WaitForSeconds(4f);
 
-        if (playerStats != null) playerStats.isInvincible = false;
+        if (PlayerStats.Instance != null) PlayerStats.Instance.isInvincible = false;
         if (activeShield != null) Destroy(activeShield);
     }
 
     void AbilityBattleCry()
     {
-        if (playerController != null) StartCoroutine(BattleCryCoroutine());
+        if (PlayerController.Instance != null) StartCoroutine(BattleCryCoroutine());
     }
 
     IEnumerator BattleCryCoroutine()
     {
-        if (battleCryVFX != null && playerController != null)
+        if (battleCryVFX != null && PlayerController.Instance != null)
         {
-            GameObject vfx = Instantiate(battleCryVFX, playerController.transform.position, Quaternion.identity, playerController.transform);
+            GameObject vfx = Instantiate(battleCryVFX, PlayerController.Instance.transform.position, Quaternion.identity, PlayerController.Instance.transform);
             SetVFXSortingBehindPlayer(vfx);
             Destroy(vfx, 3f); 
         }
@@ -260,23 +234,23 @@ public class ActiveAbilityManager : MonoBehaviour
             audioSource.PlayOneShot(battleCrySFX, 0.8f); 
         }
 
-        float originalCooldown = playerController.attackCooldown;
-        playerController.attackCooldown = originalCooldown / 2f; 
-        playerController.attackDamage += 20; 
+        float originalCooldown = PlayerController.Instance.attackCooldown;
+        PlayerController.Instance.attackCooldown = originalCooldown / 2f; 
+        PlayerController.Instance.attackDamage += 20; 
         
         yield return new WaitForSeconds(5f);
         
-        if (playerController != null) {
-            playerController.attackCooldown = originalCooldown;
-            playerController.attackDamage -= 20;
+        if (PlayerController.Instance != null) {
+            PlayerController.Instance.attackCooldown = originalCooldown;
+            PlayerController.Instance.attackDamage -= 20;
         }
     }
 
     private void SetVFXSortingBehindPlayer(GameObject vfxObject)
     {
-        if (playerController == null) return;
+        if (PlayerController.Instance == null) return;
 
-        SpriteRenderer playerSR = playerController.GetComponent<SpriteRenderer>();
+        SpriteRenderer playerSR = PlayerController.Instance.GetComponent<SpriteRenderer>();
         if (playerSR == null) return;
 
         SpriteRenderer[] vfxRenderers = vfxObject.GetComponentsInChildren<SpriteRenderer>();
@@ -288,15 +262,12 @@ public class ActiveAbilityManager : MonoBehaviour
         }
     }
 
-    // --- YENİ: ANIMATOR ENGELİNİ AŞAN AGRESİF BÜYÜTME FONKSİYONU ---
     private void SetVFXScaleRecursively(GameObject obj, float targetScale)
     {
         obj.transform.localScale = new Vector3(targetScale, targetScale, 1f);
-        
-        // Eğer alt objeler varsa hepsini tek tek gez ve boyutunu sabitle
         foreach (Transform child in obj.transform)
         {
-            child.localScale = new Vector3(1f, 1f, 1f); // Parent büyüdüğü için child'ları bozmasın diye 1'e sabitliyoruz
+            child.localScale = new Vector3(1f, 1f, 1f); 
             SetVFXScaleRecursively(child.gameObject, targetScale);
         }
     }

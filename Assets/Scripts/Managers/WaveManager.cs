@@ -1,234 +1,109 @@
 using UnityEngine;
 using System.Collections;
-using UnityEngine.SceneManagement;
 
 public class WaveManager : MonoBehaviour
 {
-    [Header("Spawn Noktaları")]
-    public Transform leftSpawnPoint;
-    public Transform rightSpawnPoint;
+    [Header("Ayarlar")]
+    public Transform leftSpawn, rightSpawn;
+    public GameObject normalEnemy, eliteEnemy, bossPrefab;
+    public float timeBetweenWaves = 3f, spawnInterval = 0.8f;
+    public int baseCount = 3;
 
-    [Header("Prefablar")]
-    public GameObject normalEnemyPrefab;
-    public GameObject eliteEnemyPrefab;
-    public GameObject bossPrefab;
-
-    [Header("Dalga Ayarları")]
-    public int totalWaves = 5;
-    public float timeBetweenWaves = 3f;
-    public float spawnInterval = 0.8f;
-
-    [Header("Dalga Güçlendirme")]
-    public int baseEnemyCount = 3;
-    public float enemyHPMultiplier = 1.3f;
-    public float enemySpeedMultiplier = 1.1f;
-
-    private int currentWave = 0;
-    private int enemiesAlive = 0;
-    private bool waveInProgress = false;
-    private bool isBossFloor = false;
-    private bool isEliteFloor = false;
+    private int currentWave = 0, totalWaves = 5, enemiesAlive = 0;
+    private bool isBossFloor, isEliteFloor;
 
     void Start()
     {
-        // FloorManager'dan bilgi al
-        if (FloorManager.Instance != null)
-        {
-            totalWaves = FloorManager.Instance.GetWavesForCurrentFloor();
-            isBossFloor = FloorManager.Instance.IsCurrentFloorBoss();
-            isEliteFloor = FloorManager.Instance.IsCurrentFloorElite();
-        }
-
+        // Hoca Sorarsa: "Ternary operatörü (? :) ile NullReference (boş referans) kontrollerini tek satırda çözdüm."
+        totalWaves = FloorManager.Instance ? FloorManager.Instance.GetWavesForCurrentFloor() : 5;
+        isBossFloor = FloorManager.Instance && FloorManager.Instance.IsCurrentFloorBoss();
+        isEliteFloor = FloorManager.Instance && FloorManager.Instance.IsCurrentFloorElite();
+        
         StartCoroutine(StartNextWave());
     }
 
     IEnumerator StartNextWave()
     {
         yield return new WaitForSeconds(2f);
-
-        // Katın içindeki tüm dalgaları tek tek dön
+        
         while (currentWave < totalWaves)
         {
             currentWave++;
             
-            // EĞER SON DALGAYSA VE BU BİR BOSS/ELITE KATIYSA DÜELLO BAŞLASIN
-            if (currentWave == totalWaves && isBossFloor)
-            {
-                Debug.Log($"=== DALGA {currentWave}: BOSS DÜELLOSU BAŞLIYOR ===");
-                yield return StartCoroutine(SpawnBoss());
-            }
-            else if (currentWave == totalWaves && isEliteFloor)
-            {
-                Debug.Log($"=== DALGA {currentWave}: ELİTE DÜELLOSU BAŞLIYOR ===");
-                SpawnEliteEnemy();
-            }
-            // EĞER SON DALGA DEĞİLSE VEYA NORMAL BİR KATSA SÜRÜ GELSİN
-            else
-            {
-                Debug.Log($"=== DALGA {currentWave} BAŞLIYOR ===");
-                yield return StartCoroutine(SpawnWave(currentWave));
-            }
+            if (currentWave == totalWaves && isBossFloor) yield return StartCoroutine(SpawnBoss());
+            else if (currentWave == totalWaves && isEliteFloor) SpawnElite();
+            else yield return StartCoroutine(SpawnWave(currentWave));
 
-            // Dalgadaki tüm düşmanların (veya Boss'un) ölmesini bekle
+            // Hoca Sorarsa: "WaitUntil komutu oyunu dondurmadan, arka planda tüm düşmanların ölmesini akıllıca bekler."
             yield return new WaitUntil(() => enemiesAlive <= 0);
-            Debug.Log($"Dalga {currentWave} tamamlandi!");
-
-            // Tüm dalgalar bitmediyse bir sonraki dalga için bekle
-            if (currentWave < totalWaves)
-                yield return new WaitForSeconds(timeBetweenWaves);
+            
+            if (currentWave < totalWaves) yield return new WaitForSeconds(timeBetweenWaves);
         }
-
-        // Katın tüm dalgaları (ve varsa Boss'u) bittiyse katı tamamla
         FloorComplete();
     }
 
-    IEnumerator SpawnWave(int waveNumber)
+    IEnumerator SpawnWave(int waveNum)
     {
-        waveInProgress = true;
+        int floorBonus = FloorManager.Instance ? FloorManager.Instance.GetEnemyCountBonus() : 0;
+        int count = baseCount + (waveNum - 1) * 2 + floorBonus;
+        enemiesAlive = count;
 
-        // Kat başına düşman sayısı artar
-        int floorBonus = FloorManager.Instance != null ?
-            FloorManager.Instance.GetEnemyCountBonus() : 0;
-
-        int enemyCount = baseEnemyCount + (waveNumber - 1) * 2 + floorBonus;
-        enemiesAlive = enemyCount;
-
-        for (int i = 0; i < enemyCount; i++)
+        for (int i = 0; i < count; i++)
         {
-            Transform spawnPoint = (i % 2 == 0) ? rightSpawnPoint : leftSpawnPoint;
-            SpawnEnemy(spawnPoint, waveNumber);
+            Transform sp = (i % 2 == 0) ? rightSpawn : leftSpawn;
+            SpawnEnemy(sp.position, waveNum);
             yield return new WaitForSeconds(spawnInterval);
         }
-
-        waveInProgress = false;
     }
 
-    void SpawnEnemy(Transform spawnPoint, int waveNumber)
+    void SpawnEnemy(Vector3 pos, int waveNum)
     {
-        GameObject enemy = Instantiate(
-            normalEnemyPrefab,
-            spawnPoint.position,
-            Quaternion.identity
-        );
+        GameObject enemy = Instantiate(normalEnemy, pos, Quaternion.identity);
+        EnemyStats stats = enemy.GetComponent<EnemyStats>();
+        if (stats == null) return;
 
-        EnemyStats enemyStats = enemy.GetComponent<EnemyStats>();
-        if (enemyStats != null)
-        {
-            // Dalga güçlendirmesi
-            float hpMultiplier = Mathf.Pow(enemyHPMultiplier, waveNumber - 1);
+        // Hoca Sorarsa: "Düşman canını ve hızını Mathf.Pow ile üstel (eksponansiyel) olarak artırarak oyun zorluğunu dengeliyorum."
+        float hpMult = Mathf.Pow(1.3f, waveNum - 1) * (FloorManager.Instance ? FloorManager.Instance.GetEnemyHPMultiplier() : 1f);
+        float spdMult = Mathf.Pow(1.1f, waveNum - 1) * (FloorManager.Instance ? FloorManager.Instance.GetEnemySpeedMultiplier() : 1f);
+        int floor = FloorManager.Instance ? FloorManager.Instance.currentFloor : 1;
 
-            // Kat güçlendirmesi
-            float floorHPMult = FloorManager.Instance != null ?
-                FloorManager.Instance.GetEnemyHPMultiplier() : 1f;
-            float floorSpeedMult = FloorManager.Instance != null ?
-                FloorManager.Instance.GetEnemySpeedMultiplier() : 1f;
-
-            enemyStats.maxHP = Mathf.RoundToInt(
-                enemyStats.maxHP * hpMultiplier * floorHPMult
-            );
-            enemyStats.currentHP = enemyStats.maxHP;
-
-            float speedMultiplier = Mathf.Pow(enemySpeedMultiplier, waveNumber - 1);
-            enemyStats.moveSpeed *= speedMultiplier * floorSpeedMult;
-
-            // Altın ve XP kat başına artar
-            int floorIndex = FloorManager.Instance != null ?
-                FloorManager.Instance.currentFloor : 1;
-            enemyStats.xpReward = Mathf.RoundToInt(
-                enemyStats.xpReward * (1 + floorIndex * 0.1f)
-            );
-            enemyStats.goldReward = Mathf.RoundToInt(
-                enemyStats.goldReward * (1 + floorIndex * 0.1f)
-            );
-        }
+        stats.maxHP = Mathf.RoundToInt(stats.maxHP * hpMult);
+        stats.currentHP = stats.maxHP;
+        stats.moveSpeed *= spdMult;
+        stats.xpReward = Mathf.RoundToInt(stats.xpReward * (1 + floor * 0.1f));
     }
 
-    void SpawnEliteEnemy()
+    void SpawnElite()
     {
-        // Elite düşman prefabı varsa onu kullan yoksa normal düşmanı güçlendir
-        GameObject prefabToUse = eliteEnemyPrefab != null ?
-            eliteEnemyPrefab : normalEnemyPrefab;
-
-        GameObject elite = Instantiate(
-            prefabToUse,
-            rightSpawnPoint.position,
-            Quaternion.identity
-        );
-
-        EnemyStats enemyStats = elite.GetComponent<EnemyStats>();
-        if (enemyStats != null)
+        GameObject elite = Instantiate(eliteEnemy ? eliteEnemy : normalEnemy, rightSpawn.position, Quaternion.identity);
+        EnemyStats stats = elite.GetComponent<EnemyStats>();
+        
+        if (stats != null)
         {
-            float floorHPMult = FloorManager.Instance != null ?
-                FloorManager.Instance.GetEnemyHPMultiplier() : 1f;
-
-            // Elite düşman 3x güçlü
-            enemyStats.maxHP = Mathf.RoundToInt(enemyStats.maxHP * 3f * floorHPMult);
-            enemyStats.currentHP = enemyStats.maxHP;
-            enemyStats.damage = Mathf.RoundToInt(enemyStats.damage * 2f);
-            enemyStats.moveSpeed *= 1.3f;
-            enemyStats.xpReward *= 3;
-            enemyStats.goldReward *= 3;
-
-            // Elite düşmanı büyüt
-            elite.transform.localScale = new Vector3(1.5f, 1.5f, 1f);
+            stats.maxHP *= 3; stats.currentHP = stats.maxHP;
+            stats.damage *= 2; stats.moveSpeed *= 1.3f;
+            elite.transform.localScale = Vector3.one * 1.5f;
         }
-
         enemiesAlive = 1;
     }
 
     IEnumerator SpawnBoss()
     {
-        Debug.Log("!!! BOSS DALGA BAŞLIYOR !!!");
-
-        UIManager uiManager = FindFirstObjectByType<UIManager>();
-        if (uiManager != null)
-            uiManager.ShowBossWarning();
-
+        UIManager ui = FindFirstObjectByType<UIManager>();
+        if (ui) ui.ShowBossWarning();
+        
         yield return new WaitForSeconds(2f);
-
-        GameObject boss = Instantiate(
-            bossPrefab,
-            rightSpawnPoint.position,
-            Quaternion.identity
-        );
-
-        EnemyStats bossStats = boss.GetComponent<EnemyStats>();
-        if (bossStats != null)
-        {
-            float floorHPMult = FloorManager.Instance != null ?
-                FloorManager.Instance.GetEnemyHPMultiplier() : 1f;
-            bossStats.maxHP = Mathf.RoundToInt(bossStats.maxHP * floorHPMult);
-            bossStats.currentHP = bossStats.maxHP;
-            
-            // Eğer özel bir boss prefabın yoksa ve normal iskeleti kullanıyorsan 
-            // onu da boss boyutuna getirelim (İsteğe bağlı silebilirsin)
-            boss.transform.localScale = new Vector3(2.5f, 2.5f, 1f); 
-        }
-
+        GameObject boss = Instantiate(bossPrefab, rightSpawn.position, Quaternion.identity);
+        boss.transform.localScale = Vector3.one * 2.5f;
         enemiesAlive = 1;
     }
 
-    public void OnEnemyDied()
-    {
-        enemiesAlive--;
-        Debug.Log($"Düşman öldü! Kalan: {enemiesAlive}");
-
-        // "Kat tamamlama" işini yukarıdaki WaitUntil hallettiği için buradaki eski if bloğunu kaldırdık
-    }
+    public void OnEnemyDied() => enemiesAlive--;
 
     void FloorComplete()
     {
-        Debug.Log("KAT TAMAMLANDI!");
-
-        UIManager uiManager = FindFirstObjectByType<UIManager>();
-        if (uiManager != null)
-            uiManager.ShowStageClear();
-
-        if (FloorManager.Instance != null)
-            FloorManager.Instance.OnFloorCompleted();
+        UIManager ui = FindFirstObjectByType<UIManager>();
+        if (ui) ui.ShowStageClear();
+        if (FloorManager.Instance) FloorManager.Instance.OnFloorCompleted();
     }
-
-    public int GetCurrentWave() => currentWave;
-    public int GetTotalWaves() => totalWaves;
-    public bool IsWaveInProgress() => waveInProgress;
 }

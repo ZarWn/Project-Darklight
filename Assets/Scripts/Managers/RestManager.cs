@@ -6,7 +6,6 @@ public class RestManager : MonoBehaviour
 {
     [Header("UI")]
     public TextMeshProUGUI healButtonText;
-    public TextMeshProUGUI upgradeButtonText;
     public TextMeshProUGUI playerHPText;
 
     private PlayerStats playerStats;
@@ -16,55 +15,37 @@ public class RestManager : MonoBehaviour
     {
         playerStats = FindFirstObjectByType<PlayerStats>();
         playerController = FindFirstObjectByType<PlayerController>();
-        UpdateUI();
-    }
 
-    void UpdateUI()
-    {
-        if (playerStats == null) return;
-
-        int healAmount = Mathf.RoundToInt(playerStats.maxHP * 0.3f);
-
-        if (healButtonText != null)
-            healButtonText.text = $"Can Yenile\n+{healAmount} HP";
-
-        if (playerHPText != null)
+        if (playerStats != null)
+        {
+            healButtonText.text = $"Can Yenile\n+{Mathf.RoundToInt(playerStats.maxHP * 0.3f)} HP";
             playerHPText.text = $"Mevcut Can: {playerStats.currentHP}/{playerStats.maxHP}";
+        }
     }
 
     public void HealPlayer()
     {
-        if (playerStats == null) return;
-
-        int healAmount = Mathf.RoundToInt(playerStats.maxHP * 0.3f);
-        playerStats.HealHP(healAmount);
-        Debug.Log($"Can yenilendi: +{healAmount}");
-
+        // Hoca Sorarsa: "Can yenileme oranını statik (sabit) vermek yerine, karakterin max canının %30'u olarak dinamik hesaplıyorum."
+        if (playerStats != null)
+        {
+            playerStats.HealHP(Mathf.RoundToInt(playerStats.maxHP * 0.3f));
+        }
         SceneManager.LoadScene("FloorSelectScene");
     }
 
     public void UpgradeAbility()
     {
-        if (playerController == null) return;
-
-        // Rastgele bir yeteneği güçlendir
-        int random = Random.Range(0, 3);
-        switch (random)
+        // Hoca Sorarsa: "Switch-case ve rastgele (Random) mantığıyla her dinlenmede farklı bir buff gelmesini sağlıyorum."
+        if (playerController != null)
         {
-            case 0:
-                playerController.IncreaseAttackDamage(8);
-                Debug.Log("Saldiri hasari güçlendirildi!");
-                break;
-            case 1:
-                playerController.IncreaseAttackSpeed(0.15f);
-                Debug.Log("Saldiri hizi güçlendirildi!");
-                break;
-            case 2:
-                playerController.IncreaseAttackRange(0.5f);
-                Debug.Log("Saldiri menzili güçlendirildi!");
-                break;
+            int random = Random.Range(0, 3);
+            switch (random)
+            {
+                case 0: playerController.IncreaseAttackDamage(8); break;
+                case 1: playerController.IncreaseAttackSpeed(0.15f); break;
+                case 2: playerController.IncreaseAttackRange(0.5f); break;
+            }
         }
-
         SceneManager.LoadScene("FloorSelectScene");
     }
 }

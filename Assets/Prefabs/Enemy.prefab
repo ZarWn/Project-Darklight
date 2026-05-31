@@ -196,7 +196,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::EnemyController
   stopDistance: 3.3
-  attackInterval: 1.5
+  attackInterval: 2.5
   damageAmount: 5
   isDead: 0
   walkLoopSound: {fileID: 8300000, guid: 4e61de83f061349458cf0e45b837d315, type: 3}

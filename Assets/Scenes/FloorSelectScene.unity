@@ -960,7 +960,7 @@ MonoBehaviour:
   m_HandleRect: {fileID: 74344537}
   m_Direction: 2
   m_Value: 0
-  m_Size: 0.35433334
+  m_Size: 0.36
   m_NumberOfSteps: 0
   m_OnValueChanged:
     m_PersistentCalls:
@@ -1146,7 +1146,7 @@ RectTransform:
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
   m_AnchorMin: {x: 0.5, y: 1}
   m_AnchorMax: {x: 0.5, y: 1}
-  m_AnchoredPosition: {x: -952, y: -1063}
+  m_AnchoredPosition: {x: -952, y: -1080}
   m_SizeDelta: {x: 1920, y: 3000}
   m_Pivot: {x: 0, y: 0}
 --- !u!1 &1834686426
@@ -1226,7 +1226,7 @@ Canvas:
   m_OverridePixelPerfect: 0
   m_SortingBucketNormalizedSize: 0
   m_VertexColorAlwaysGammaSpace: 0
-  m_AdditionalShaderChannelsFlag: 0
+  m_AdditionalShaderChannelsFlag: 25
   m_UpdateRectTransformForStandalone: 0
   m_SortingLayerID: 0
   m_SortingOrder: 0
@@ -1297,19 +1297,8 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::FloorMapManager
   mapContent: {fileID: 1748135982}
-  savasColor: {r: 0.7058824, g: 0.19607843, b: 0.19607843, a: 1}
-  eliteColor: {r: 0.47058824, g: 0.078431375, b: 0.078431375, a: 1}
-  shopColor: {r: 0.19607843, g: 0.5882353, b: 0.19607843, a: 1}
-  hazineColor: {r: 0.7058824, g: 0.5882353, b: 0.078431375, a: 1}
-  dinlenmeColor: {r: 0.078431375, g: 0.39215687, b: 0.7058824, a: 1}
-  bossColor: {r: 0.5882353, g: 0.078431375, b: 0.5882353, a: 1}
-  finalBossColor: {r: 0.78431374, g: 0, b: 0, a: 1}
-  completedColor: {r: 0.23529412, g: 0.23529412, b: 0.23529412, a: 1}
-  currentColor: {r: 1, g: 1, b: 1, a: 1}
-  nodeSize: 80
-  floorHeight: 160
-  horizontalSpacing: 250
-  bottomPadding: 100
+  nodePrefab: {fileID: 0}
+  linePrefab: {fileID: 0}
 --- !u!1660057539 &9223372036854775807
 SceneRoots:
   m_ObjectHideFlags: 0

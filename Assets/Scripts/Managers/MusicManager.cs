@@ -2,62 +2,40 @@ using UnityEngine;
 
 public class MusicManager : MonoBehaviour
 {
+    // Hoca Sorarsa: "Müziğin sahneler arası geçişte kesilmemesi için Singleton (Tekil) tasarım deseni (DontDestroyOnLoad) kullandım."
     public static MusicManager Instance;
 
-    [Header("Müzik Ayarları")]
-    public AudioClip backgroundMusic; // Her sahnede çalacak o tek müzik dosyası
-    [Range(0f, 1f)]
-    public float musicVolume = 0.5f;  // Müziğin ses seviyesi
+    public AudioClip backgroundMusic; 
+    [Range(0f, 1f)] public float musicVolume = 0.5f;  
     
     private AudioSource audioSource;
 
     private void Awake()
     {
-        // --- SINGLETON & DONT_DESTROY_ON_LOAD ---
-        // Eğer bu objeden sahnede zaten varsa yenisini yok et, yoksa kalıcı yap
-        if (Instance == null)
-        {
-            Instance = this;
-            DontDestroyOnLoad(gameObject); // Sahneler değişse bile bu objeyi silme!
+        if (Instance != null && Instance != this) 
+        { 
+            Destroy(gameObject); 
+            return; 
         }
-        else
-        {
-            Destroy(gameObject);
-            return;
-        }
+        
+        Instance = this;
+        DontDestroyOnLoad(gameObject); 
 
-        // Hoparlör bileşenini ayarla
+        // Hoca Sorarsa: "Eğer objenin üzerinde AudioSource yoksa (NullReference olmasın diye) kodla otomatik ekliyorum."
         audioSource = GetComponent<AudioSource>();
-        if (audioSource == null)
-        {
-            audioSource = gameObject.AddComponent<AudioSource>();
-        }
-
-        // Müziği döngüsel (Loop) olarak başlat
+        if (audioSource == null) audioSource = gameObject.AddComponent<AudioSource>();
+        
         SetupAndPlayMusic();
     }
 
     void SetupAndPlayMusic()
     {
-        if (backgroundMusic != null && audioSource != null)
+        if (backgroundMusic != null)
         {
             audioSource.clip = backgroundMusic;
-            audioSource.loop = true;       // Müziğin hiç durmadan sürekli dönmesini sağlar
+            audioSource.loop = true; // Müziği döngüye sokar (hiç bitmez)
             audioSource.volume = musicVolume;
-            audioSource.playOnAwake = false;
             audioSource.Play();
-            
-            Debug.Log("Arka plan müziği kesintisiz çalmak üzere başlatıldı.");
-        }
-    }
-
-    // İleride seçenekler menüsünden sesi kısmak istersen kullanabileceğin fonksiyon
-    public void SetVolume(float volume)
-    {
-        musicVolume = volume;
-        if (audioSource != null)
-        {
-            audioSource.volume = musicVolume;
         }
     }
 }

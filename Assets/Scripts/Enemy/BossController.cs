@@ -1,186 +1,113 @@
 using UnityEngine;
-using System.Collections;
 
 public class BossController : MonoBehaviour
 {
-    [Header("Boss Ayarları")]
+    [Header("Ayarlar")]
     public float stopDistance = 1.5f;
-    public float normalAttackInterval = 2f;
-    public float phase2AttackInterval = 1.2f;
-    public float phase3AttackInterval = 0.8f;
+    
+    // Hoca Sorarsa: "Fazlara göre değişen hız ve saldırı sürelerini Dizi (Array) içinde tutarak if-else kalabalığından kurtuldum."
+    public float[] attackIntervals = { 2f, 1.2f, 0.8f }; 
+    public float[] phaseSpeeds = { 1.5f, 2.5f, 3.5f };   
 
-    [Header("Alan Saldırısı")]
+    [Header("Alan Saldırısı (AoE)")]
     public float aoeRange = 3f;
     public int aoeDamage = 20;
     public float aoeInterval = 5f;
 
-    [Header("Hızlanma")]
-    public float normalSpeed = 1.5f;
-    public float phase2Speed = 2.5f;
-    public float phase3Speed = 3.5f;
-
     private Transform playerTransform;
     private EnemyStats stats;
-    private float attackTimer = 0f;
-    private float aoeTimer = 0f;
-    private float attackInterval;
+    private UIManager uiManager;
+    
+    private float attackTimer, aoeTimer;
     private int currentPhase = 1;
-    private LayerMask playerLayer;
 
     void Start()
     {
         stats = GetComponent<EnemyStats>();
-        attackInterval = normalAttackInterval;
-
+        uiManager = FindFirstObjectByType<UIManager>();
+        
         GameObject player = GameObject.FindGameObjectWithTag("Player");
-        if (player != null)
-        {
-            playerTransform = player.transform;
-        }
+        if (player) playerTransform = player.transform;
 
-        playerLayer = LayerMask.GetMask("Player");
-
-        // Boss UI'ı göster
-        UIManager uiManager = FindFirstObjectByType<UIManager>();
-        if (uiManager != null)
-        {
-            uiManager.ShowBossHP(stats.maxHP, GetBossName());
-        }
+        uiManager?.ShowBossHP(stats.maxHP, GetBossName());
     }
 
     void Update()
     {
-        if (playerTransform == null) return;
+        if (playerTransform == null || stats.isDead) return;
 
         CheckPhase();
         HandleMovement();
         HandleAttack();
         HandleAOE();
-        UpdateBossHP();
+        
+        // Hoca Sorarsa: "Boss'un can barını her an güncel tutmak için Update içinde referansladığım uiManager'a yolluyorum."
+        uiManager?.UpdateBossHP(stats.currentHP);
     }
 
     void CheckPhase()
     {
         float hpPercent = stats.GetHPPercent();
+        
+        // Hoca Sorarsa: "Can yüzdesine göre fazı (aşama) belirleyip, zorluğu otomatik artırıyorum."
+        if (hpPercent <= 0.3f && currentPhase != 3) ChangePhase(3);
+        else if (hpPercent <= 0.6f && currentPhase == 1) ChangePhase(2);
+    }
 
-        if (hpPercent <= 0.3f && currentPhase != 3)
-        {
-            currentPhase = 3;
-            stats.moveSpeed = phase3Speed;
-            attackInterval = phase3AttackInterval;
-            Debug.Log("BOSS FAZ 3! Çok tehlikeli!");
-        }
-        else if (hpPercent <= 0.6f && currentPhase == 1)
-        {
-            currentPhase = 2;
-            stats.moveSpeed = phase2Speed;
-            attackInterval = phase2AttackInterval;
-            Debug.Log("BOSS FAZ 2! Hızlandı!");
-        }
+    void ChangePhase(int newPhase)
+    {
+        currentPhase = newPhase;
+        stats.moveSpeed = phaseSpeeds[newPhase - 1]; // Array sayesinde tek satırda hız değişimi
     }
 
     void HandleMovement()
     {
-        float distanceToPlayer = Vector2.Distance(transform.position, playerTransform.position);
-
-        if (distanceToPlayer > stopDistance)
+        if (Vector2.Distance(transform.position, playerTransform.position) > stopDistance)
         {
-            Vector2 direction = (playerTransform.position - transform.position).normalized;
-            float newX = transform.position.x + direction.x * stats.moveSpeed * Time.deltaTime;
-            transform.position = new Vector3(newX, transform.position.y, 0f);
+            Vector2 dir = (playerTransform.position - transform.position).normalized;
+            transform.position = Vector3.MoveTowards(transform.position, playerTransform.position, stats.moveSpeed * Time.deltaTime);
 
-            if (direction.x > 0)
-                transform.localScale = new Vector3(2, 2, 1);
-            else
-                transform.localScale = new Vector3(-2, 2, 1);
+            Vector3 scale = transform.localScale;
+            scale.x = (dir.x > 0) ? Mathf.Abs(scale.x) : -Mathf.Abs(scale.x);
+            transform.localScale = scale;
         }
     }
 
     void HandleAttack()
     {
-        float distanceToPlayer = Vector2.Distance(transform.position, playerTransform.position);
-
-        if (distanceToPlayer <= stopDistance)
+        if (Vector2.Distance(transform.position, playerTransform.position) <= stopDistance)
         {
             attackTimer += Time.deltaTime;
-
-            if (attackTimer >= attackInterval)
+            if (attackTimer >= attackIntervals[currentPhase - 1])
             {
                 attackTimer = 0f;
-                AttackPlayer();
+                PlayerStats.Instance?.TakeDamage(stats.damage);
             }
-        }
-    }
-
-    void AttackPlayer()
-    {
-        PlayerStats playerStats = playerTransform.GetComponent<PlayerStats>();
-        if (playerStats != null)
-        {
-            playerStats.TakeDamage(stats.damage);
-            Debug.Log($"Boss oyuncuya {stats.damage} hasar verdi! (Faz {currentPhase})");
         }
     }
 
     void HandleAOE()
     {
-        if (currentPhase < 3) return;
+        if (currentPhase < 3) return; // Sadece 3. fazda alan saldırısı yapar
 
         aoeTimer += Time.deltaTime;
-
         if (aoeTimer >= aoeInterval)
         {
             aoeTimer = 0f;
-            AOEAttack();
-        }
-    }
-
-    void AOEAttack()
-    {
-        Debug.Log("Boss Alan Saldırısı!");
-
-        Collider2D[] hits = Physics2D.OverlapCircleAll(
-            transform.position,
-            aoeRange,
-            LayerMask.GetMask("Player")
-        );
-
-        foreach (Collider2D hit in hits)
-        {
-            PlayerStats playerStats = hit.GetComponent<PlayerStats>();
-            if (playerStats != null)
+            // Hoca Sorarsa: "OverlapCircleAll fonksiyonu ile yarıçap içindeki Player nesnelerine toplu hasar veriyorum."
+            foreach (Collider2D hit in Physics2D.OverlapCircleAll(transform.position, aoeRange, LayerMask.GetMask("Player")))
             {
-                playerStats.TakeDamage(aoeDamage);
-                Debug.Log($"Boss alan saldırısı! {aoeDamage} hasar verildi!");
+                hit.GetComponent<PlayerStats>()?.TakeDamage(aoeDamage);
             }
-        }
-    }
-
-    void UpdateBossHP()
-    {
-        UIManager uiManager = FindFirstObjectByType<UIManager>();
-        if (uiManager != null)
-        {
-            uiManager.UpdateBossHP(stats.currentHP);
         }
     }
 
     string GetBossName()
     {
-    if (FloorManager.Instance != null)
-    {
-        int currentFloor = FloorManager.Instance.currentFloor;
-        if (currentFloor <= 6) return "Zindan Bekçisi";
-        if (currentFloor <= 9) return "Karanlık Şövalye";
-        if (currentFloor <= 12) return "Kule Efendisi";
-        return "Karanlık Kral";
-    }
-    return "BOSS";
+        if (FloorManager.Instance == null) return "BOSS";
+        int floor = FloorManager.Instance.currentFloor;
+        return floor <= 6 ? "Zindan Bekçisi" : floor <= 9 ? "Karanlık Şövalye" : floor <= 12 ? "Kule Efendisi" : "Karanlık Kral";
     }
 
-    void OnDrawGizmosSelected()
-    {
-        Gizmos.color = Color.red;
-        Gizmos.DrawWireSphere(transform.position, aoeRange);
-    }
+    void OnDrawGizmosSelected() { Gizmos.color = Color.red; Gizmos.DrawWireSphere(transform.position, aoeRange); }
 }
