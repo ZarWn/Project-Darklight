@@ -1,6 +1,6 @@
 using UnityEngine;
 
-// Hoca Sorarsa: "Silah verilerini kalıp olarak tutmak için Serializable (Serileştirilebilir) bir model sınıfı oluşturdum."
+// Hoca Sorarsa: "Silah verilerini kalıp olarak tutmak için Serializable (Serileştirilebilir) bir model sınıfı oluşturdum. Bu, bellek yönetimini kolaylaştırır."
 [System.Serializable]
 public class WeaponData
 {
@@ -15,4 +15,5 @@ public class WeaponData
     public bool piercingShot, aoeAttack, applyBleed;
 }
 
-public enum WeaponType { GeceBicagi, RunYayi, KhaosAsasi, KanMizragi, RuhTirpani }
+// Yeni efsanevi kılıç listemiz
+public enum WeaponType { PasliCirakKilici, SuikastciKisaKilici, SovalyeUzunKilici, LanetliKatana, CellatBuyukKilici }

@@ -56,8 +56,12 @@ public class ActiveAbilityManager : MonoBehaviour
 
     private void OnSceneLoaded(Scene scene, LoadSceneMode mode)
     {
-        // HATA ÇÖZÜMÜ: Artık FindFirstObjectByType ile sahneyi tarayıp yanlış klonu almıyoruz.
-        // Doğrudan ResetAllCooldowns çalıştırıyoruz, hedefleri Instance üzerinden bulacak.
+        // --- 1. ÇÖZÜM: GEÇMİŞİ TEMİZLE ---
+        // Karakter ölüp yeni sahne yüklendiğinde, eski sahneden havada asılı kalan (donan)
+        // tüm yetenekleri ve çalan sesleri zorla iptal ediyoruz.
+        StopAllCoroutines();
+        if (audioSource != null) audioSource.Stop();
+        
         ResetAllCooldowns();
     }
 
@@ -84,7 +88,6 @@ public class ActiveAbilityManager : MonoBehaviour
 
     void Update()
     {
-        // Update içindeki gereksiz arama fonksiyonları silindi, performans arttı.
         UpdateCooldowns();
     }
 
@@ -123,6 +126,13 @@ public class ActiveAbilityManager : MonoBehaviour
 
     public void CastAbility(int slot)
     {
+        // --- 2. ÇÖZÜM: GÜVENLİK KİLİDİ ---
+        // Eğer zaman durduysa (Level Up veya Game Over ekranı açıksa) KESİNLİKLE büyü atma!
+        if (Time.timeScale == 0f) return;
+        
+        // Eğer karakter öldüyse KESİNLİKLE büyü atma!
+        if (PlayerStats.Instance == null || PlayerStats.Instance.currentHP <= 0) return;
+
         if (slot < 0 || slot >= 3) return; 
         if (abilities[slot] == null) return;
         if (isOnCooldown[slot]) return;
@@ -147,7 +157,6 @@ public class ActiveAbilityManager : MonoBehaviour
 
     void AbilityCelestialStrike()
     {
-        // Doğrudan asıl oyuncunun kimliğine (Instance) ulaşıyoruz!
         if (PlayerController.Instance != null) 
             StartCoroutine(CelestialStrikeCoroutine());
     }
@@ -159,6 +168,9 @@ public class ActiveAbilityManager : MonoBehaviour
 
         for (int i = 0; i < celestialStrikeCount; i++)
         {
+            // Eğer yıldırım düşerken karakter ölürse, kalan yıldırımları iptal et
+            if (PlayerStats.Instance == null || PlayerStats.Instance.currentHP <= 0) break;
+
             float randomX = Random.Range(-celestialStrikeRange, celestialStrikeRange);
             Vector3 strikePosition = new Vector3(playerPos.x + randomX, playerPos.y + celestialStrikeYOffset, 0f);
 
@@ -233,6 +245,8 @@ public class ActiveAbilityManager : MonoBehaviour
             audioSource.pitch = Random.Range(0.95f, 1.05f);
             audioSource.PlayOneShot(battleCrySFX, 0.8f); 
         }
+
+        if (PlayerController.Instance == null) yield break;
 
         float originalCooldown = PlayerController.Instance.attackCooldown;
         PlayerController.Instance.attackCooldown = originalCooldown / 2f; 

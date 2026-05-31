@@ -11,6 +11,9 @@ public class PlayerController : MonoBehaviour
     public int attackDamage = 10;
     public LayerMask enemyLayer;
 
+    [Header("Pasif Yetenekler")]
+    public float lifestealChance = 0f; // Vampir Dişi kartı için
+
     [Header("Sesler")]
     public AudioClip swordAttackSound;
     private AudioSource audioSource;
@@ -29,8 +32,8 @@ public class PlayerController : MonoBehaviour
     {
         animator = GetComponent<Animator>();
         audioSource = gameObject.GetComponent<AudioSource>() ?? gameObject.AddComponent<AudioSource>();
-
         enemyLayer = LayerMask.GetMask("Enemy");
+        
         if (TryGetComponent(out Rigidbody2D rb))
         {
             rb.constraints = RigidbodyConstraints2D.FreezeRotation;
@@ -48,43 +51,39 @@ public class PlayerController : MonoBehaviour
     {
         Time.timeScale = 1f;
         ApplyWeapon();
-        
-        if (animator) 
-        {
-            animator.Rebind();
-            animator.Update(0f);
-        }
+        if (animator) { animator.Rebind(); animator.Update(0f); }
     }
 
     void ApplyWeapon()
     {
-        // Eğer direkt GameScene'den başlarsan çökmeyi önleyen varsayılan değerler
         if (WeaponManager.Instance == null || WeaponManager.Instance.GetSelectedWeapon() == null) 
         {
-            attackRange = 3f; 
-            attackCooldown = 0.5f;
-            return;
+            attackRange = 3f; attackCooldown = 0.5f; return;
         }
         
         currentWeapon = WeaponManager.Instance.GetSelectedWeapon();
         attackDamage = currentWeapon.damage;
         
-        // --- ASIL HATA ÇÖZÜMÜ: MENZİL KÖR NOKTASI ---
-        // Düşman 1.5'te dururken silah menzili 1.5 olursa fizik motoru kıl payı kaçırıyordu.
-        // Tolerans payı (+0.8f) ve minimum bir genişlik (2.5f) ekleyerek bu kör noktayı tamamen sildim.
+        // Düşman hitbox kör noktasını engelleyen menzil toleransı
         attackRange = Mathf.Max(2.5f, currentWeapon.range + 0.8f);
         
-        attackCooldown = Mathf.Clamp(currentWeapon.attackSpeed, 0.2f, 3f);
+        // Silah bekleme süresini 0.3 ile 2.0 saniye arasında sınırla (aşırı hızları önler)
+        attackCooldown = Mathf.Clamp(currentWeapon.attackSpeed, 0.3f, 2.0f);
         
-        // Animasyon hızını silah hızına senkronize et ki çok hızlı silahlarda donmasın
-        if (animator) animator.speed = Mathf.Clamp(0.5f / attackCooldown, 0.5f, 2.5f);
+        if (animator) 
+        {
+            // ANİMASYON HIZI SINIRLANDIRMASI
+            // Referans olarak 0.6 saniyelik bir saldırıyı baz alıyoruz.
+            // Çok yavaş silahlarda su altındaymış gibi görünmesin diye minimum 0.8x hız,
+            // Çok hızlı silahlarda saçmalamasın diye maksimum 1.5x hız sınırı koyduk.
+            float targetAnimSpeed = 0.6f / attackCooldown;
+            animator.speed = Mathf.Clamp(targetAnimSpeed, 0.8f, 1.5f);
+        }
     }
 
     void Update()
     {
         attackTimer += Time.deltaTime;
-        
-        // Sadece cooldown bittiyse ve "GERÇEKTEN" düşman varsa vur
         if (attackTimer >= attackCooldown && CheckIfEnemyNearby())
         {
             attackTimer = 0f;
@@ -98,7 +97,7 @@ public class PlayerController : MonoBehaviour
     {
         if (animator)
         {
-            animator.ResetTrigger("Attack"); // Önceki saldırıdan kalan hayalet trigger'ı temizle
+            animator.ResetTrigger("Attack");
             animator.SetFloat("AttackIndex", Random.Range(0f, 1f));
             animator.SetTrigger("Attack");
         }
@@ -134,7 +133,21 @@ public class PlayerController : MonoBehaviour
         Collider2D[] hits = Physics2D.OverlapCircleAll(transform.position, attackRange, enemyLayer);
         foreach (var hit in hits)
         {
-            if (hit.TryGetComponent(out EnemyStats es)) es.TakeDamage(attackDamage);
+            if (hit.TryGetComponent(out EnemyStats es))
+            {
+                es.TakeDamage(attackDamage);
+
+                // --- ALTIN ORAN: Vampirizm (Can Çalma) ---
+                // Eğer vampirizm varsa, maksimum canın %2.5'ini garanti çalar (En az 1 can).
+                if (lifestealChance > 0f && Random.value <= lifestealChance)
+                {
+                    if (PlayerStats.Instance != null)
+                    {
+                        int stealAmount = Mathf.Max(1, Mathf.RoundToInt(PlayerStats.Instance.maxHP * 0.025f));
+                        PlayerStats.Instance.HealHP(stealAmount);
+                    }
+                }
+            }
         }
     }
 

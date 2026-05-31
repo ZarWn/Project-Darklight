@@ -11,7 +11,9 @@ public class FloorManager : MonoBehaviour
     public int currentFloor = 0;
     public int totalFloors = 16;
     
-    // Eski harita tasarımının yolları çizebilmesi için gereken hafıza değişkeni
+    // --- HATA ÇÖZÜMÜ: Haritanın yolları unutmaması için "Harita Şifresi" ---
+    public int mapSeed; 
+    
     public int currentNodeIndex = -1; 
     
     private List<List<FloorType>> floorMap = new List<List<FloorType>>();
@@ -20,6 +22,11 @@ public class FloorManager : MonoBehaviour
     {
         if (Instance == null) { Instance = this; DontDestroyOnLoad(gameObject); }
         else { Destroy(gameObject); return; }
+        
+        // Oyun ilk başladığında eşsiz bir harita şifresi üretip kilitliyoruz.
+        mapSeed = Random.Range(10000, 999999);
+        Random.InitState(mapSeed); 
+        
         GenerateRandomMap();
     }
 
@@ -50,11 +57,10 @@ public class FloorManager : MonoBehaviour
 
     public List<FloorType> GetFloorOptions(int floorIndex) => floorIndex < floorMap.Count ? floorMap[floorIndex] : new List<FloorType> { FloorType.FinalBoss };
 
-    // HATA ÇÖZÜMÜ: Harita yöneticisinin beklediği 2 parametreli fonksiyon
     public void SelectFloor(FloorType floorType, int nodeIndex = -1)
     {
         currentFloor++;
-        currentNodeIndex = nodeIndex; // Seçilen odanın indeksini kaydet ki sonraki yollar doğru çizilsin
+        currentNodeIndex = nodeIndex; 
         
         string sceneName = "GameScene";
         if (floorType == FloorType.Shop) sceneName = "ShopScene";
@@ -64,12 +70,8 @@ public class FloorManager : MonoBehaviour
         SceneManager.LoadScene(sceneName);
     }
 
-    // HATA ÇÖZÜMÜ: Haritanın kat sayısını okuduğu fonksiyon
     public int GetTotalFloors() => totalFloors;
 
-    // ---------------------------------------------------------
-    // WaveManager ve Zorluk Ayarları
-    
     public int GetWavesForCurrentFloor() => 3 + (currentFloor / 3); 
     
     public bool IsCurrentFloorBoss() 
@@ -90,7 +92,6 @@ public class FloorManager : MonoBehaviour
 
     public void OnFloorCompleted()
     {
-        Debug.Log($"Kat {currentFloor} tamamlandı!");
         SceneManager.LoadScene("FloorSelectScene"); 
     }
 }

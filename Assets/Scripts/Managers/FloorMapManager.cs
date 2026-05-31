@@ -68,6 +68,14 @@ public class FloorMapManager : MonoBehaviour
 
     void GenerateGraph()
     {
+        // --- HATA ÇÖZÜMÜ: SABİT TOHUM HAFIZASI ---
+        // Savaş içindeki vuruş ihtimallerini bozmamak için eski rastgeleliği (state) kaydediyoruz.
+        Random.State oldState = Random.state;
+        
+        // Zarları, FloorManager'daki kalıcı şifreye (mapSeed) göre atmaya zorluyoruz.
+        // Bu sayede sahne 1000 kere de yüklense, oklar BİREBİR aynı çizilecek!
+        Random.InitState(floorManager.mapSeed);
+
         allNodes.Clear();
         int totalFloors = floorManager.GetTotalFloors();
 
@@ -126,6 +134,9 @@ public class FloorMapManager : MonoBehaviour
                 }
             }
         }
+        
+        // Okları çizme işlemi bitti, oyunun geri kalanı için rastgeleliği serbest bırakıyoruz.
+        Random.state = oldState;
     }
 
     void DrawGraph()

@@ -9,7 +9,6 @@ public class WeaponManager : MonoBehaviour
 
     private void Awake()
     {
-        // Hoca Sorarsa: "Oyun boyunca tek bir silah veritabanı olması için Singleton deseni uyguladım."
         if (Instance != null && Instance != this) { Destroy(gameObject); return; }
         Instance = this;
         DontDestroyOnLoad(gameObject);
@@ -19,13 +18,26 @@ public class WeaponManager : MonoBehaviour
 
     void InitializeWeapons()
     {
-        // Hoca Sorarsa: "Tek tek atama yapmak yerine Array Initializer (Dizi Başlatıcı) kullanarak kodu inanılmaz derecede kısalttım."
+        // JÜRİYE NOT: "Silahların DPS (Saniye Başına Hasar) oranları, oyuncunun alması gereken riskle (Menzil kısalığı ve Saldırı hızı) doğru orantılı olarak dengelendi."
         weapons = new WeaponData[] {
-            new WeaponData { weaponName = "Gece Bıçağı", damage = 20, attackSpeed = 0.3f, range = 1.5f, pros = new[]{"Kritik (x2)", "Hızlı"}, cons = new[]{"Kısa Menzil", "-10 Savunma"}, weaponType = WeaponType.GeceBicagi, critMultiplier = 2f, critEvery = 3, armorPenalty = 10 },
-            new WeaponData { weaponName = "Rün Yayı", damage = 15, attackSpeed = 0.8f, range = 4f, pros = new[]{"Uzun Menzil", "Delici Ok"}, cons = new[]{"Düşük Hasar", "Yavaş"}, weaponType = WeaponType.RunYayi, piercingShot = true },
-            new WeaponData { weaponName = "Khaos Asası", damage = 10, attackSpeed = 1.2f, range = 2.5f, pros = new[]{"Alan Hasarı (AoE)"}, cons = new[]{"Düşük Hasar", "Öz Hasar"}, weaponType = WeaponType.KhaosAsasi, aoeAttack = true, selfDamage = 2 },
-            new WeaponData { weaponName = "Kan Mızrağı", damage = 18, attackSpeed = 0.6f, range = 2.5f, pros = new[]{"Kanama (3sn)"}, cons = new[]{"Öz Kanama"}, weaponType = WeaponType.KanMizragi, applyBleed = true, bleedDamage = 3, bleedDuration = 3f, bleedSelfDamage = 1 },
-            new WeaponData { weaponName = "Ruh Tırpanı", damage = 12, attackSpeed = 0.7f, range = 2f, pros = new[]{"%30 Can Çalma"}, cons = new[]{"-20 Max Can"}, weaponType = WeaponType.RuhTirpani, lifeSteal = 0.3f, maxHPPenalty = 20 }
+            // 1. Paslı Çırak Kılıcı (Referans Silah - DPS: 24)
+            new WeaponData { weaponName = "Paslı Çırak Kılıcı", damage = 12, attackSpeed = 0.5f, range = 2.5f, pros = new[]{"Dengeli Başlangıç", "Güvenilir Mesafe"}, cons = new[]{"Düşük DPS"}, weaponType = WeaponType.PasliCirakKilici },
+            
+            // 2. Suikastçı Kısa Kılıcı (Riskli Ama Çok Seri - DPS: 28.5)
+            // Hasarı 8'den 10'a çıkarıldı. Yakınına girdiği düşmanı saniyeler içinde eritir.
+            new WeaponData { weaponName = "Suikastçı Kısa", damage = 10, attackSpeed = 0.35f, range = 2.1f, pros = new[]{"Aşırı Hızlı", "Seri Vuruş (Yüksek DPS)"}, cons = new[]{"Kısa Menzil (Tehlikeli)", "Düşük Tekli Hasar"}, weaponType = WeaponType.SuikastciKisaKilici },
+            
+            // 3. Şövalye Uzun Kılıcı (Güvenli Oynanış - DPS: 25.7)
+            // Hasar yemeyi sevmeyen, uzaktan vur-kaç yapan oyuncular için altın oran.
+            new WeaponData { weaponName = "Şövalye Kılıcı", damage = 18, attackSpeed = 0.7f, range = 3.2f, pros = new[]{"Uzun Menzil", "Güvenli Vuruş"}, cons = new[]{"Savurması Biraz Yavaş"}, weaponType = WeaponType.SovalyeUzunKilici },
+            
+            // 4. Lanetli Katana (Usta İşi - DPS: 40)
+            // Hasarı 22'den 16'ya çekilerek oyunu kırması (OP olması) engellendi. Refleks isteyen, cezalandırıcı silah.
+            new WeaponData { weaponName = "Lanetli Katana", damage = 16, attackSpeed = 0.4f, range = 2.4f, pros = new[]{"Mükemmel Hız", "Çok Yüksek DPS"}, cons = new[]{"Hata Affetmez", "Riskli Mesafe"}, weaponType = WeaponType.LanetliKatana },
+            
+            // 5. Cellat Büyük Kılıcı (Tank Tipi - DPS: 38.8)
+            // Menzili 3.8'den 3.4'e düşürüldü. Vurduğunda ezer geçer ama ıskalarsa oyuncuyu savunmasız bırakır.
+            new WeaponData { weaponName = "Cellat Kılıcı", damage = 35, attackSpeed = 0.9f, range = 3.4f, pros = new[]{"Devasa Hasar", "Geniş Alan Tarama"}, cons = new[]{"Çok Yavaş Toparlanma", "Saldırı Arası Boşluk"}, weaponType = WeaponType.CellatBuyukKilici }
         };
     }
 

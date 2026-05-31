@@ -14,7 +14,6 @@ public class WaveManager : MonoBehaviour
 
     void Start()
     {
-        // Hoca Sorarsa: "Ternary operatörü (? :) ile NullReference (boş referans) kontrollerini tek satırda çözdüm."
         totalWaves = FloorManager.Instance ? FloorManager.Instance.GetWavesForCurrentFloor() : 5;
         isBossFloor = FloorManager.Instance && FloorManager.Instance.IsCurrentFloorBoss();
         isEliteFloor = FloorManager.Instance && FloorManager.Instance.IsCurrentFloorElite();
@@ -34,55 +33,104 @@ public class WaveManager : MonoBehaviour
             else if (currentWave == totalWaves && isEliteFloor) SpawnElite();
             else yield return StartCoroutine(SpawnWave(currentWave));
 
-            // Hoca Sorarsa: "WaitUntil komutu oyunu dondurmadan, arka planda tüm düşmanların ölmesini akıllıca bekler."
             yield return new WaitUntil(() => enemiesAlive <= 0);
             
             if (currentWave < totalWaves) yield return new WaitForSeconds(timeBetweenWaves);
         }
-        FloorComplete();
+        
+        StartCoroutine(FloorCompleteRoutine());
     }
 
     IEnumerator SpawnWave(int waveNum)
     {
+        int currentFloor = FloorManager.Instance ? FloorManager.Instance.currentFloor : 1;
+        int playerLevel = PlayerStats.Instance != null ? PlayerStats.Instance.currentLevel : 1;
+
+        int expectedLevel = currentFloor * 3;
+        int levelGap = Mathf.Max(0, playerLevel - expectedLevel); 
+        
         int floorBonus = FloorManager.Instance ? FloorManager.Instance.GetEnemyCountBonus() : 0;
-        int count = baseCount + (waveNum - 1) * 2 + floorBonus;
+        
+        int count = baseCount + waveNum + (currentFloor - 1) + floorBonus;
+        
+        int overLevelBonus = Mathf.Min(3, levelGap / 2);
+        count += overLevelBonus;
+
+        count = Mathf.Clamp(count, 1, 15);
+        
         enemiesAlive = count;
 
         for (int i = 0; i < count; i++)
         {
             Transform sp = (i % 2 == 0) ? rightSpawn : leftSpawn;
-            SpawnEnemy(sp.position, waveNum);
+            SpawnEnemy(sp.position, waveNum, currentFloor, levelGap);
             yield return new WaitForSeconds(spawnInterval);
         }
     }
 
-    void SpawnEnemy(Vector3 pos, int waveNum)
+    void SpawnEnemy(Vector3 pos, int waveNum, int currentFloor, int levelGap)
     {
         GameObject enemy = Instantiate(normalEnemy, pos, Quaternion.identity);
+        enemy.layer = LayerMask.NameToLayer("Enemy"); 
+        
         EnemyStats stats = enemy.GetComponent<EnemyStats>();
         if (stats == null) return;
 
-        // Hoca Sorarsa: "Düşman canını ve hızını Mathf.Pow ile üstel (eksponansiyel) olarak artırarak oyun zorluğunu dengeliyorum."
-        float hpMult = Mathf.Pow(1.3f, waveNum - 1) * (FloorManager.Instance ? FloorManager.Instance.GetEnemyHPMultiplier() : 1f);
-        float spdMult = Mathf.Pow(1.1f, waveNum - 1) * (FloorManager.Instance ? FloorManager.Instance.GetEnemySpeedMultiplier() : 1f);
-        int floor = FloorManager.Instance ? FloorManager.Instance.currentFloor : 1;
+        float baseHpMult = 1f + (currentFloor * 0.25f) + (waveNum * 0.1f);
+        float baseDmgMult = 1f + (currentFloor * 0.15f) + (waveNum * 0.05f);
+        float baseSpdMult = 1f + (currentFloor * 0.05f);
 
-        stats.maxHP = Mathf.RoundToInt(stats.maxHP * hpMult);
+        float adaptiveHpMult = 1f + (levelGap * 0.08f);
+        float adaptiveDmgMult = 1f + (levelGap * 0.04f);
+
+        stats.maxHP = Mathf.RoundToInt(stats.maxHP * baseHpMult * adaptiveHpMult);
         stats.currentHP = stats.maxHP;
-        stats.moveSpeed *= spdMult;
-        stats.xpReward = Mathf.RoundToInt(stats.xpReward * (1 + floor * 0.1f));
+        
+        int calculatedDamage = Mathf.RoundToInt(stats.damage * baseDmgMult * adaptiveDmgMult);
+        stats.damage = Mathf.Max(5, calculatedDamage); 
+        
+        stats.moveSpeed *= baseSpdMult;
+        stats.xpReward = Mathf.RoundToInt(stats.xpReward * (1 + currentFloor * 0.1f));
     }
 
     void SpawnElite()
     {
         GameObject elite = Instantiate(eliteEnemy ? eliteEnemy : normalEnemy, rightSpawn.position, Quaternion.identity);
+        elite.layer = LayerMask.NameToLayer("Enemy");
+
         EnemyStats stats = elite.GetComponent<EnemyStats>();
+        EnemyController ec = elite.GetComponent<EnemyController>();
         
+        int currentFloor = FloorManager.Instance ? FloorManager.Instance.currentFloor : 1;
+        int playerLevel = PlayerStats.Instance != null ? PlayerStats.Instance.currentLevel : 1;
+        int levelGap = Mathf.Max(0, playerLevel - (currentFloor * 3));
+
         if (stats != null)
         {
-            stats.maxHP *= 3; stats.currentHP = stats.maxHP;
-            stats.damage *= 2; stats.moveSpeed *= 1.3f;
-            elite.transform.localScale = Vector3.one * 1.5f;
+            float baseHpMult = 1f + (currentFloor * 0.30f);
+            float adaptiveHpMult = 1f + (levelGap * 0.10f); 
+            
+            stats.maxHP = Mathf.RoundToInt(stats.maxHP * 4f * baseHpMult * adaptiveHpMult); 
+            stats.currentHP = stats.maxHP;
+            
+            int calculatedDamage = Mathf.RoundToInt(stats.damage * 2f * (1f + (currentFloor * 0.2f)) * (1f + (levelGap * 0.05f)));
+            stats.damage = Mathf.Max(10, calculatedDamage);
+            
+            stats.moveSpeed *= 1.15f; 
+            stats.xpReward *= 5; 
+            
+            elite.transform.localScale = new Vector3(
+                elite.transform.localScale.x * 1.5f,
+                elite.transform.localScale.y * 1.5f,
+                elite.transform.localScale.z
+            );
+            
+            // --- HATA ÇÖZÜMÜ ---
+            // Çarpmak yerine Elit'in durma mesafesini sabitledik. En kısa kılıç bile rahatça vurabilir.
+            if (ec != null) ec.stopDistance = 1.5f;
+
+            SpriteRenderer sr = elite.GetComponentInChildren<SpriteRenderer>();
+            if (sr != null) sr.color = new Color(1f, 0.4f, 0.4f);
         }
         enemiesAlive = 1;
     }
@@ -94,16 +142,56 @@ public class WaveManager : MonoBehaviour
         
         yield return new WaitForSeconds(2f);
         GameObject boss = Instantiate(bossPrefab, rightSpawn.position, Quaternion.identity);
-        boss.transform.localScale = Vector3.one * 2.5f;
+        boss.layer = LayerMask.NameToLayer("Enemy");
+        
+        EnemyStats stats = boss.GetComponent<EnemyStats>();
+        EnemyController ec = boss.GetComponent<EnemyController>();
+        
+        int currentFloor = FloorManager.Instance ? FloorManager.Instance.currentFloor : 1;
+        int playerLevel = PlayerStats.Instance != null ? PlayerStats.Instance.currentLevel : 1;
+        int levelGap = Mathf.Max(0, playerLevel - (currentFloor * 3));
+        
+        if(stats != null)
+        {
+            float baseHpMult = 1f + (currentFloor * 0.40f);
+            float adaptiveHpMult = 1f + (levelGap * 0.12f);
+            
+            stats.maxHP = Mathf.RoundToInt(stats.maxHP * 10f * baseHpMult * adaptiveHpMult);
+            stats.currentHP = stats.maxHP;
+            
+            int calculatedDamage = Mathf.RoundToInt(stats.damage * 3.5f * (1f + (currentFloor * 0.25f)) * (1f + (levelGap * 0.08f)));
+            stats.damage = Mathf.Max(15, calculatedDamage);
+            
+            stats.xpReward *= 15;
+        }
+
+        boss.transform.localScale = new Vector3(
+            boss.transform.localScale.x * 2f, 
+            boss.transform.localScale.y * 2f,
+            boss.transform.localScale.z
+        );
+
+        // --- HATA ÇÖZÜMÜ ---
+        // Boss 2 kat büyük olsa da dibimize kadar girmek zorunda kalacak.
+        if (ec != null) ec.stopDistance = 1.8f;
+
         enemiesAlive = 1;
     }
 
     public void OnEnemyDied() => enemiesAlive--;
 
-    void FloorComplete()
+    IEnumerator FloorCompleteRoutine()
     {
         UIManager ui = FindFirstObjectByType<UIManager>();
-        if (ui) ui.ShowStageClear();
-        if (FloorManager.Instance) FloorManager.Instance.OnFloorCompleted();
+        if (ui) ui.ShowStageClear(); 
+        
+        if (PlayerStats.Instance != null)
+        {
+            PlayerStats.Instance.HealHP(Mathf.RoundToInt(PlayerStats.Instance.maxHP * 0.10f));
+        }
+
+        yield return new WaitForSeconds(2.5f); 
+        
+        if (FloorManager.Instance) FloorManager.Instance.OnFloorCompleted(); 
     }
 }
