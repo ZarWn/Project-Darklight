@@ -36,6 +36,12 @@ public class ActiveAbilityManager : MonoBehaviour
     public delegate void OnCooldownChanged(int slot, float remaining, float total);
     public static event OnCooldownChanged onCooldownChanged;
 
+    private GameObject currentActiveShield;
+    private bool isBattleCryActive = false;
+    private float originalAttackCooldown;
+    
+    private int battleCryDamageBonus = 10;
+
     private void Awake()
     {
         if (Instance != null && Instance != this)
@@ -56,11 +62,23 @@ public class ActiveAbilityManager : MonoBehaviour
 
     private void OnSceneLoaded(Scene scene, LoadSceneMode mode)
     {
-        // --- 1. ÇÖZÜM: GEÇMİŞİ TEMİZLE ---
-        // Karakter ölüp yeni sahne yüklendiğinde, eski sahneden havada asılı kalan (donan)
-        // tüm yetenekleri ve çalan sesleri zorla iptal ediyoruz.
         StopAllCoroutines();
         if (audioSource != null) audioSource.Stop();
+        
+        if (currentActiveShield != null) Destroy(currentActiveShield);
+        
+        if (PlayerStats.Instance != null) 
+        {
+            PlayerStats.Instance.isInvincible = false;
+            PlayerStats.Instance.isShielded = false; 
+        }
+
+        if (isBattleCryActive && PlayerController.Instance != null)
+        {
+            PlayerController.Instance.attackCooldown = originalAttackCooldown;
+            PlayerController.Instance.attackDamage -= battleCryDamageBonus;
+            isBattleCryActive = false;
+        }
         
         ResetAllCooldowns();
     }
@@ -126,11 +144,7 @@ public class ActiveAbilityManager : MonoBehaviour
 
     public void CastAbility(int slot)
     {
-        // --- 2. ÇÖZÜM: GÜVENLİK KİLİDİ ---
-        // Eğer zaman durduysa (Level Up veya Game Over ekranı açıksa) KESİNLİKLE büyü atma!
         if (Time.timeScale == 0f) return;
-        
-        // Eğer karakter öldüyse KESİNLİKLE büyü atma!
         if (PlayerStats.Instance == null || PlayerStats.Instance.currentHP <= 0) return;
 
         if (slot < 0 || slot >= 3) return; 
@@ -166,9 +180,10 @@ public class ActiveAbilityManager : MonoBehaviour
         LayerMask enemyLayer = LayerMask.GetMask("Enemy");
         Vector3 playerPos = PlayerController.Instance.transform.position;
 
+        int strikeDamage = PlayerController.Instance != null ? Mathf.RoundToInt(PlayerController.Instance.attackDamage * 2.5f) : 30;
+
         for (int i = 0; i < celestialStrikeCount; i++)
         {
-            // Eğer yıldırım düşerken karakter ölürse, kalan yıldırımları iptal et
             if (PlayerStats.Instance == null || PlayerStats.Instance.currentHP <= 0) break;
 
             float randomX = Random.Range(-celestialStrikeRange, celestialStrikeRange);
@@ -191,10 +206,10 @@ public class ActiveAbilityManager : MonoBehaviour
             Collider2D[] enemies = Physics2D.OverlapCircleAll(strikePosition, strikeDamageRadius, enemyLayer);
             foreach (Collider2D enemy in enemies)
             {
-                if (enemy.TryGetComponent(out EnemyStats stats)) stats.TakeDamage(100);
+                if (enemy.TryGetComponent(out EnemyStats stats)) stats.TakeDamage(strikeDamage);
             }
 
-            yield return new WaitForSeconds(timeBetweenStrikes);
+            yield return new WaitForSecondsRealtime(timeBetweenStrikes);
         }
     }
 
@@ -205,13 +220,14 @@ public class ActiveAbilityManager : MonoBehaviour
 
     IEnumerator ShieldCoroutine()
     {
-        PlayerStats.Instance.isInvincible = true;
+        PlayerStats.Instance.isShielded = true;
 
-        GameObject activeShield = null;
+        if (currentActiveShield != null) Destroy(currentActiveShield);
+
         if (absoluteShieldVFX != null && PlayerController.Instance != null)
         {
-            activeShield = Instantiate(absoluteShieldVFX, PlayerController.Instance.transform.position, Quaternion.identity, PlayerController.Instance.transform);
-            SetVFXSortingBehindPlayer(activeShield); 
+            currentActiveShield = Instantiate(absoluteShieldVFX, PlayerController.Instance.transform.position, Quaternion.identity, PlayerController.Instance.transform);
+            SetVFXSortingBehindPlayer(currentActiveShield); 
         }
 
         if (audioSource != null && absoluteShieldSFX != null)
@@ -220,10 +236,13 @@ public class ActiveAbilityManager : MonoBehaviour
             audioSource.PlayOneShot(absoluteShieldSFX, 0.7f);
         }
 
-        yield return new WaitForSeconds(4f);
+        yield return new WaitForSecondsRealtime(4f);
 
-        if (PlayerStats.Instance != null) PlayerStats.Instance.isInvincible = false;
-        if (activeShield != null) Destroy(activeShield);
+        if (PlayerStats.Instance != null) 
+        {
+            PlayerStats.Instance.isShielded = false; 
+        }
+        if (currentActiveShield != null) Destroy(currentActiveShield);
     }
 
     void AbilityBattleCry()
@@ -246,17 +265,21 @@ public class ActiveAbilityManager : MonoBehaviour
             audioSource.PlayOneShot(battleCrySFX, 0.8f); 
         }
 
-        if (PlayerController.Instance == null) yield break;
+        if (PlayerController.Instance == null || isBattleCryActive) yield break;
 
-        float originalCooldown = PlayerController.Instance.attackCooldown;
-        PlayerController.Instance.attackCooldown = originalCooldown / 2f; 
-        PlayerController.Instance.attackDamage += 20; 
+        originalAttackCooldown = PlayerController.Instance.attackCooldown;
         
-        yield return new WaitForSeconds(5f);
+        PlayerController.Instance.attackCooldown = originalAttackCooldown * 0.7f; 
+        PlayerController.Instance.attackDamage += battleCryDamageBonus; 
+        isBattleCryActive = true;
         
-        if (PlayerController.Instance != null) {
-            PlayerController.Instance.attackCooldown = originalCooldown;
-            PlayerController.Instance.attackDamage -= 20;
+        yield return new WaitForSecondsRealtime(5f);
+        
+        if (PlayerController.Instance != null && isBattleCryActive) 
+        {
+            PlayerController.Instance.attackCooldown = originalAttackCooldown;
+            PlayerController.Instance.attackDamage -= battleCryDamageBonus;
+            isBattleCryActive = false;
         }
     }
 
@@ -287,6 +310,7 @@ public class ActiveAbilityManager : MonoBehaviour
     }
 }
 
+// İŞTE UNUTTUKLARIMIZ! BU KISIM DOSYANIN EN ALTINDA OLMALI:
 public class ActiveAbility
 {
     public string name;

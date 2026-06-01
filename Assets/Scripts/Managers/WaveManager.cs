@@ -7,7 +7,7 @@ public class WaveManager : MonoBehaviour
     public Transform leftSpawn, rightSpawn;
     public GameObject normalEnemy, eliteEnemy, bossPrefab;
     public float timeBetweenWaves = 3f, spawnInterval = 0.8f;
-    public int baseCount = 3;
+    public int baseCount = 2; 
 
     private int currentWave = 0, totalWaves = 5, enemiesAlive = 0;
     private bool isBossFloor, isEliteFloor;
@@ -17,7 +17,7 @@ public class WaveManager : MonoBehaviour
         totalWaves = FloorManager.Instance ? FloorManager.Instance.GetWavesForCurrentFloor() : 5;
         isBossFloor = FloorManager.Instance && FloorManager.Instance.IsCurrentFloorBoss();
         isEliteFloor = FloorManager.Instance && FloorManager.Instance.IsCurrentFloorElite();
-        
+
         StartCoroutine(StartNextWave());
     }
 
@@ -46,17 +46,13 @@ public class WaveManager : MonoBehaviour
         int currentFloor = FloorManager.Instance ? FloorManager.Instance.currentFloor : 1;
         int playerLevel = PlayerStats.Instance != null ? PlayerStats.Instance.currentLevel : 1;
 
-        int expectedLevel = currentFloor * 3;
+        int expectedLevel = currentFloor * 2; 
         int levelGap = Mathf.Max(0, playerLevel - expectedLevel); 
         
-        int floorBonus = FloorManager.Instance ? FloorManager.Instance.GetEnemyCountBonus() : 0;
-        
-        int count = baseCount + waveNum + (currentFloor - 1) + floorBonus;
-        
-        int overLevelBonus = Mathf.Min(3, levelGap / 2);
+        int count = baseCount + (waveNum / 2) + (currentFloor / 2);
+        int overLevelBonus = levelGap / 3; 
         count += overLevelBonus;
-
-        count = Mathf.Clamp(count, 1, 15);
+        count = Mathf.Clamp(count, 1, 10); 
         
         enemiesAlive = count;
 
@@ -76,21 +72,24 @@ public class WaveManager : MonoBehaviour
         EnemyStats stats = enemy.GetComponent<EnemyStats>();
         if (stats == null) return;
 
-        float baseHpMult = 1f + (currentFloor * 0.25f) + (waveNum * 0.1f);
-        float baseDmgMult = 1f + (currentFloor * 0.15f) + (waveNum * 0.05f);
-        float baseSpdMult = 1f + (currentFloor * 0.05f);
+        // KUSURSUZ DENGE: Can artış hızı %10'a sabitlendi. Hasar artışı %12 oldu.
+        // Sonuç: Düşmanlar sert vurur (Zorluk) ama hızlı ölürler (Akıcılık).
+        float baseHpMult = 1f + ((currentFloor - 1) * 0.10f); 
+        float baseDmgMult = 1f + ((currentFloor - 1) * 0.12f);
+        float baseSpdMult = 1f + ((currentFloor - 1) * 0.02f);
 
-        float adaptiveHpMult = 1f + (levelGap * 0.08f);
-        float adaptiveDmgMult = 1f + (levelGap * 0.04f);
+        // Adaptif sistem oyuncuyu çok cezalandırmayacak şekilde kısıldı.
+        float adaptiveHpMult = 1f + (levelGap * 0.03f);
+        float adaptiveDmgMult = 1f + (levelGap * 0.02f);
 
         stats.maxHP = Mathf.RoundToInt(stats.maxHP * baseHpMult * adaptiveHpMult);
         stats.currentHP = stats.maxHP;
         
         int calculatedDamage = Mathf.RoundToInt(stats.damage * baseDmgMult * adaptiveDmgMult);
-        stats.damage = Mathf.Max(5, calculatedDamage); 
+        stats.damage = Mathf.Max(1, calculatedDamage); 
         
         stats.moveSpeed *= baseSpdMult;
-        stats.xpReward = Mathf.RoundToInt(stats.xpReward * (1 + currentFloor * 0.1f));
+        stats.xpReward = Mathf.RoundToInt(stats.xpReward * (1f + ((currentFloor - 1) * 0.15f))); // Ödül artırıldı
     }
 
     void SpawnElite()
@@ -103,31 +102,32 @@ public class WaveManager : MonoBehaviour
         
         int currentFloor = FloorManager.Instance ? FloorManager.Instance.currentFloor : 1;
         int playerLevel = PlayerStats.Instance != null ? PlayerStats.Instance.currentLevel : 1;
-        int levelGap = Mathf.Max(0, playerLevel - (currentFloor * 3));
+        int levelGap = Mathf.Max(0, playerLevel - (currentFloor * 2));
 
         if (stats != null)
         {
-            float baseHpMult = 1f + (currentFloor * 0.30f);
-            float adaptiveHpMult = 1f + (levelGap * 0.10f); 
+            // Elitlerin canı aşırı şişmesin diye %15 artışa çekildi.
+            float baseHpMult = 1f + ((currentFloor - 1) * 0.15f);
+            float adaptiveHpMult = 1f + (levelGap * 0.05f); 
+            float baseDmgMult = 1f + ((currentFloor - 1) * 0.12f);
+            float adaptiveDmgMult = 1f + (levelGap * 0.03f);
             
-            stats.maxHP = Mathf.RoundToInt(stats.maxHP * 4f * baseHpMult * adaptiveHpMult); 
+            stats.maxHP = Mathf.RoundToInt(stats.maxHP * 2.5f * baseHpMult * adaptiveHpMult); 
             stats.currentHP = stats.maxHP;
             
-            int calculatedDamage = Mathf.RoundToInt(stats.damage * 2f * (1f + (currentFloor * 0.2f)) * (1f + (levelGap * 0.05f)));
-            stats.damage = Mathf.Max(10, calculatedDamage);
+            int calculatedDamage = Mathf.RoundToInt(stats.damage * 1.5f * baseDmgMult * adaptiveDmgMult);
+            stats.damage = Mathf.Max(3, calculatedDamage);
             
-            stats.moveSpeed *= 1.15f; 
-            stats.xpReward *= 5; 
+            stats.moveSpeed *= 1.10f; 
+            stats.xpReward *= 4; 
             
-            elite.transform.localScale = new Vector3(
-                elite.transform.localScale.x * 1.5f,
-                elite.transform.localScale.y * 1.5f,
-                elite.transform.localScale.z
-            );
+            elite.transform.localScale = new Vector3(elite.transform.localScale.x * 1.5f, elite.transform.localScale.y * 1.5f, elite.transform.localScale.z);
             
-            // --- HATA ÇÖZÜMÜ ---
-            // Çarpmak yerine Elit'in durma mesafesini sabitledik. En kısa kılıç bile rahatça vurabilir.
-            if (ec != null) ec.stopDistance = 1.5f;
+            if (ec != null) 
+            {
+                ec.stopDistance = 2.0f;
+                ec.attackDistance = 3.0f; 
+            }
 
             SpriteRenderer sr = elite.GetComponentInChildren<SpriteRenderer>();
             if (sr != null) sr.color = new Color(1f, 0.4f, 0.4f);
@@ -149,49 +149,44 @@ public class WaveManager : MonoBehaviour
         
         int currentFloor = FloorManager.Instance ? FloorManager.Instance.currentFloor : 1;
         int playerLevel = PlayerStats.Instance != null ? PlayerStats.Instance.currentLevel : 1;
-        int levelGap = Mathf.Max(0, playerLevel - (currentFloor * 3));
+        int levelGap = Mathf.Max(0, playerLevel - (currentFloor * 2));
         
         if(stats != null)
         {
-            float baseHpMult = 1f + (currentFloor * 0.40f);
-            float adaptiveHpMult = 1f + (levelGap * 0.12f);
+            // Bossların can artışı yavaşlatıldı ama hasarları hala çok tehlikeli!
+            float baseHpMult = 1f + ((currentFloor - 1) * 0.20f);
+            float adaptiveHpMult = 1f + (levelGap * 0.05f);
+            float baseDmgMult = 1f + ((currentFloor - 1) * 0.15f);
+            float adaptiveDmgMult = 1f + (levelGap * 0.04f);
             
-            stats.maxHP = Mathf.RoundToInt(stats.maxHP * 10f * baseHpMult * adaptiveHpMult);
+            stats.maxHP = Mathf.RoundToInt(stats.maxHP * 4.5f * baseHpMult * adaptiveHpMult);
             stats.currentHP = stats.maxHP;
             
-            int calculatedDamage = Mathf.RoundToInt(stats.damage * 3.5f * (1f + (currentFloor * 0.25f)) * (1f + (levelGap * 0.08f)));
-            stats.damage = Mathf.Max(15, calculatedDamage);
+            int calculatedDamage = Mathf.RoundToInt(stats.damage * 2f * baseDmgMult * adaptiveDmgMult);
+            stats.damage = Mathf.Max(5, calculatedDamage);
             
-            stats.xpReward *= 15;
+            stats.xpReward *= 10;
         }
 
-        boss.transform.localScale = new Vector3(
-            boss.transform.localScale.x * 2f, 
-            boss.transform.localScale.y * 2f,
-            boss.transform.localScale.z
-        );
+        boss.transform.localScale = new Vector3(boss.transform.localScale.x * 2f, boss.transform.localScale.y * 2f, boss.transform.localScale.z);
 
-        // --- HATA ÇÖZÜMÜ ---
-        // Boss 2 kat büyük olsa da dibimize kadar girmek zorunda kalacak.
-        if (ec != null) ec.stopDistance = 1.8f;
+        if (ec != null) 
+        {
+            ec.stopDistance = 2.8f;
+            ec.attackDistance = 4.0f;
+        }
 
         enemiesAlive = 1;
     }
 
     public void OnEnemyDied() => enemiesAlive--;
-
+    
     IEnumerator FloorCompleteRoutine()
     {
         UIManager ui = FindFirstObjectByType<UIManager>();
         if (ui) ui.ShowStageClear(); 
-        
-        if (PlayerStats.Instance != null)
-        {
-            PlayerStats.Instance.HealHP(Mathf.RoundToInt(PlayerStats.Instance.maxHP * 0.10f));
-        }
-
+        if (PlayerStats.Instance != null) PlayerStats.Instance.HealHP(Mathf.RoundToInt(PlayerStats.Instance.maxHP * 0.10f));
         yield return new WaitForSeconds(2.5f); 
-        
         if (FloorManager.Instance) FloorManager.Instance.OnFloorCompleted(); 
     }
 }

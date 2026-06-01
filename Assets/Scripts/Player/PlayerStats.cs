@@ -19,6 +19,8 @@ public class PlayerStats : MonoBehaviour
 
     [Header("Durum")]
     public bool isInvincible = false;
+    // HATA ÇÖZÜMÜ: Kalkan yeteneğine özel yeni bir koruma durumu ekledik!
+    public bool isShielded = false; 
 
     [Header("Efektler")]
     private SpriteRenderer spriteRenderer; 
@@ -27,6 +29,7 @@ public class PlayerStats : MonoBehaviour
     [Header("Events")]
     public UnityEvent onLevelUp, onPlayerDeath;
 
+    public GameObject dodgeTextPrefab; // YENİ EKLENDİ: Kaçınma yazısı kalıbı
     private void Awake()
     {
         if (Instance == null) { Instance = this; DontDestroyOnLoad(gameObject); }
@@ -45,14 +48,19 @@ public class PlayerStats : MonoBehaviour
 
     void OnSceneLoaded(Scene scene, LoadSceneMode mode)
     {
+        isInvincible = false; 
+        isShielded = false; // Sahne değişince kalkan durumunu da sıfırla
+        if (spriteRenderer) spriteRenderer.color = originalColor;
         if (currentHP <= 0) ResetAllStats();
     }
 
     public void TakeDamage(int damage)
     {
-        if (isInvincible) return;
+        // HATA ÇÖZÜMÜ: Eğer normal ölümsüzsen VEYA kalkanın açıksa hasarı iptal et!
+        if (isInvincible || isShielded) return;
 
-        if (dodgeChance > 0f && Random.value <= dodgeChance) return;
+        float realDodge = Mathf.Clamp(dodgeChance, 0f, 0.8f);
+        if (realDodge > 0f && Random.value <= realDodge) return;
 
         int finalDamage = Mathf.Max(1, damage - armor);
         currentHP -= finalDamage;
@@ -65,18 +73,20 @@ public class PlayerStats : MonoBehaviour
     IEnumerator DamageFlickerAndIFrame()
     {
         isInvincible = true;
+        
         if (spriteRenderer)
         {
             spriteRenderer.color = new Color(1f, 0.3f, 0.3f, 0.7f);
-            yield return new WaitForSeconds(0.15f);
+            yield return new WaitForSecondsRealtime(0.15f);
             spriteRenderer.color = originalColor;
-            yield return new WaitForSeconds(0.15f);
+            yield return new WaitForSecondsRealtime(0.15f);
             spriteRenderer.color = new Color(1f, 0.3f, 0.3f, 0.7f);
-            yield return new WaitForSeconds(0.15f);
+            yield return new WaitForSecondsRealtime(0.15f);
             spriteRenderer.color = originalColor;
         }
-        else yield return new WaitForSeconds(0.45f);
+        else yield return new WaitForSecondsRealtime(0.45f);
 
+        // Bu sadece yanıp sönme ölümsüzlüğünü kapatacak, kalkanı ellemeyecek.
         isInvincible = false;
     }
 
@@ -89,13 +99,14 @@ public class PlayerStats : MonoBehaviour
         {
             currentXP -= xpToNextLevel;
             currentLevel++;
-            xpToNextLevel = Mathf.RoundToInt(xpToNextLevel * 1.2f);
+            xpToNextLevel = Mathf.RoundToInt(xpToNextLevel * 1.15f);
             
-            // --- ALTIN ORAN 1: Seviye atladığında Maksimum Canın %25'i kadar iyileş (Eskiden %15'ti) ---
             HealHP(Mathf.RoundToInt(maxHP * 0.25f));
             
             onLevelUp?.Invoke();
-            FindFirstObjectByType<LevelUpManager>()?.ShowLevelUpPanel();
+            
+            LevelUpManager levelUpManager = FindFirstObjectByType<LevelUpManager>();
+            if (levelUpManager != null) levelUpManager.ShowLevelUpPanel();
         }
     }
 
@@ -105,17 +116,22 @@ public class PlayerStats : MonoBehaviour
     public void AddKill()
     {
         killCount++;
-        // --- ALTIN ORAN 2: Düşman kestikçe Maksimum Canın %2'si kadar iyileş (En az 1 can garanti) ---
         HealHP(Mathf.Max(1, Mathf.RoundToInt(maxHP * 0.02f)));
     }
 
     void Die()
     {
-        GetComponent<Animator>()?.SetTrigger("Die");
+        Animator anim = GetComponent<Animator>();
+        if (anim != null) anim.SetTrigger("Die");
+        
         Time.timeScale = 0f;
 
-        FindFirstObjectByType<LevelUpManager>()?.gameObject.SetActive(false);
-        FindFirstObjectByType<UIManager>()?.ShowGameOver();
+        LevelUpManager levelUpManager = FindFirstObjectByType<LevelUpManager>();
+        if (levelUpManager != null) levelUpManager.gameObject.SetActive(false);
+        
+        UIManager uiManager = FindFirstObjectByType<UIManager>();
+        if (uiManager != null) uiManager.ShowGameOver();
+        
         onPlayerDeath?.Invoke();
     }
 
@@ -148,5 +164,7 @@ public class PlayerStats : MonoBehaviour
             anim.Update(0f);
         }
         if (spriteRenderer) spriteRenderer.color = originalColor;
+        isInvincible = false;
+        isShielded = false; // Kalkanı da sıfırla
     }
 }

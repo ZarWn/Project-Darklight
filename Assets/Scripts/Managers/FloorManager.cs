@@ -10,11 +10,10 @@ public class FloorManager : MonoBehaviour
     [Header("Kat Ayarları")]
     public int currentFloor = 0;
     public int totalFloors = 16;
-    
-    // --- HATA ÇÖZÜMÜ: Haritanın yolları unutmaması için "Harita Şifresi" ---
     public int mapSeed; 
-    
     public int currentNodeIndex = -1; 
+    
+    public FloorType currentSelectedFloorType = FloorType.Savas; 
     
     private List<List<FloorType>> floorMap = new List<List<FloorType>>();
 
@@ -23,10 +22,8 @@ public class FloorManager : MonoBehaviour
         if (Instance == null) { Instance = this; DontDestroyOnLoad(gameObject); }
         else { Destroy(gameObject); return; }
         
-        // Oyun ilk başladığında eşsiz bir harita şifresi üretip kilitliyoruz.
         mapSeed = Random.Range(10000, 999999);
         Random.InitState(mapSeed); 
-        
         GenerateRandomMap();
     }
 
@@ -40,18 +37,83 @@ public class FloorManager : MonoBehaviour
         }
     }
 
+    // --- ALTIN ORAN: KUSURSUZ HARİTA ALGORİTMASI ---
     List<FloorType> GenerateFloorOptions(int floorIndex)
     {
         List<FloorType> options = new List<FloorType>();
         int roomCount = (floorIndex % 2 == 0) ? 2 : 3;
 
+        // 1. KURAL: İlk iki kat her zaman Savaş olmalı (Isınma ve altın kasma)
+        if (floorIndex < 2)
+        {
+            for (int i = 0; i < roomCount; i++) options.Add(FloorType.Savas);
+            return options;
+        }
+
+        // 2. KURAL: Oyunun tam ortası (totalFloors'un yarısı) kesinlikle Hazine olmalı!
+        if (floorIndex == (totalFloors / 2) - 1)
+        {
+            for (int i = 0; i < roomCount; i++) options.Add(FloorType.Hazine);
+            return options;
+        }
+
+        // 3. KURAL: Final Boss'tan bir önceki kat (Sondan 2. kat) KESİNLİKLE Dinlenme olmalı!
+        if (floorIndex == totalFloors - 2)
+        {
+            for (int i = 0; i < roomCount; i++) options.Add(FloorType.Dinlenme);
+            return options;
+        }
+
+        // 4. KURAL: Kontrollü ve Dengeli Rastgelelik
+        bool hasElite = false;
+        bool hasShop = false;
+        bool hasRest = false;
+
         for (int i = 0; i < roomCount; i++)
         {
-            if (floorIndex < 2) options.Add(FloorType.Savas);
-            else if (Random.value > 0.7f && floorIndex > 3) options.Add(FloorType.Elite);
-            else if (Random.value > 0.8f) options.Add((FloorType)Random.Range(2, 5));
-            else options.Add(FloorType.Savas);
+            float rand = Random.value;
+
+            // Kat 4 ve 10 civarı Market (Shop) çıkma ihtimali aşırı yüksektir
+            if ((floorIndex == 4 || floorIndex == 10) && !hasShop && rand > 0.2f)
+            {
+                options.Add(FloorType.Shop);
+                hasShop = true;
+            }
+            // Elitler 3. Kattan sonra başlar ve bir katta maksimum 1 tane olabilir
+            else if (floorIndex > 2 && !hasElite && rand > 0.65f)
+            {
+                options.Add(FloorType.Elite);
+                hasElite = true;
+            }
+            // Ekstra rastgele Shop veya Dinlenme çıkma ihtimali (Oyun zorlaştıkça nefes aldırır)
+            else if (rand > 0.85f)
+            {
+                if (!hasRest && rand > 0.90f) { options.Add(FloorType.Dinlenme); hasRest = true; }
+                else if (!hasShop && rand > 0.85f) { options.Add(FloorType.Shop); hasShop = true; }
+                else options.Add(FloorType.Savas);
+            }
+            else
+            {
+                options.Add(FloorType.Savas); // Kalan her şey normal savaş
+            }
         }
+
+        // Eğer bir katta ilerlenebilecek HİÇBİR normal savaş kalmadıysa, en az 1 tanesini savaşa çevir.
+        // (Oyuncu mecbur kalıp sürekli Elit'e girmek zorunda hissetmesin)
+        if (!options.Contains(FloorType.Savas) && !options.Contains(FloorType.Elite))
+        {
+            options[0] = FloorType.Savas;
+        }
+
+        // Seçenekleri karıştır ki Market veya Elit hep aynı sütunda (Örn: hep en sağda) çıkmasın
+        for (int i = 0; i < options.Count; i++)
+        {
+            FloorType temp = options[i];
+            int randomIndex = Random.Range(i, options.Count);
+            options[i] = options[randomIndex];
+            options[randomIndex] = temp;
+        }
+
         return options;
     }
 
@@ -59,6 +121,7 @@ public class FloorManager : MonoBehaviour
 
     public void SelectFloor(FloorType floorType, int nodeIndex = -1)
     {
+        currentSelectedFloorType = floorType; 
         currentFloor++;
         currentNodeIndex = nodeIndex; 
         
@@ -71,20 +134,9 @@ public class FloorManager : MonoBehaviour
     }
 
     public int GetTotalFloors() => totalFloors;
-
     public int GetWavesForCurrentFloor() => 3 + (currentFloor / 3); 
-    
-    public bool IsCurrentFloorBoss() 
-    {
-        var options = GetFloorOptions(currentFloor);
-        return options.Contains(FloorType.Boss) || options.Contains(FloorType.FinalBoss);
-    }
-    
-    public bool IsCurrentFloorElite()
-    {
-        var options = GetFloorOptions(currentFloor);
-        return options.Contains(FloorType.Elite);
-    }
+    public bool IsCurrentFloorBoss() => currentSelectedFloorType == FloorType.Boss || currentSelectedFloorType == FloorType.FinalBoss;
+    public bool IsCurrentFloorElite() => currentSelectedFloorType == FloorType.Elite;
 
     public int GetEnemyCountBonus() => currentFloor / 2; 
     public float GetEnemyHPMultiplier() => 1f + (currentFloor * 0.15f); 

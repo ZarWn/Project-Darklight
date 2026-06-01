@@ -8,9 +8,10 @@ public class EnemyController : MonoBehaviour
     private Rigidbody2D rb; 
 
     [Header("Hareket Ayarları")]
-    public float stopDistance = 1.5f;   
+    public float stopDistance = 1.2f;   
 
     [Header("Saldırı Ayarları")]
+    public float attackDistance = 2.0f; 
     public float attackInterval = 1.5f; 
     private float attackTimer = 0f;
     public int damageAmount = 5;        
@@ -28,6 +29,9 @@ public class EnemyController : MonoBehaviour
 
     void Start()
     {
+        if (stopDistance <= 0f) stopDistance = 1.2f;
+        if (attackDistance <= stopDistance) attackDistance = stopDistance + 0.8f; 
+
         stats = GetComponent<EnemyStats>();
         enemyAnimator = GetComponent<Animator>(); 
         audioSource = GetComponent<AudioSource>(); 
@@ -44,13 +48,16 @@ public class EnemyController : MonoBehaviour
     {
         if (isDead || playerTransform == null) return;
 
-        float distanceToPlayer = Vector2.Distance(transform.position, playerTransform.position);
+        float distanceToPlayerX = Mathf.Abs(transform.position.x - playerTransform.position.x);
 
-        if (distanceToPlayer > stopDistance)
+        // HATA ÇÖZÜMÜ: Saldırı sayacı (Timer) artık sürekli artıyor. (Animasyon spamlama engellendi)
+        attackTimer += Time.deltaTime;
+
+        // 1. HAREKET MANTIĞI
+        if (distanceToPlayerX > stopDistance)
         {
             MoveTowardsPlayer();
-            attackTimer = attackInterval; 
-
+            
             moveGroanTimer += Time.deltaTime;
             if (moveGroanTimer >= nextMoveGroanTime)
             {
@@ -67,10 +74,18 @@ public class EnemyController : MonoBehaviour
         else
         {
             moveGroanTimer = 0f; 
-            
             if (rb != null) rb.linearVelocity = new Vector2(0f, rb.linearVelocity.y);
+            
+            float dirX = Mathf.Sign(playerTransform.position.x - transform.position.x);
+            Vector3 scale = transform.localScale;
+            scale.x = (dirX > 0) ? Mathf.Abs(scale.x) : -Mathf.Abs(scale.x);
+            transform.localScale = scale;
+        }
 
-            attackTimer += Time.deltaTime;
+        // 2. SALDIRI MANTIĞI
+        if (distanceToPlayerX <= attackDistance)
+        {
+            // Eğer süre dolmuşsa VUR ve sayacı sıfırla. Süre dolmamışsa efendi gibi bekle.
             if (attackTimer >= attackInterval)
             {
                 AttackPlayer();
@@ -105,7 +120,6 @@ public class EnemyController : MonoBehaviour
             audioSource.PlayOneShot(enemyAttackSound, 0.4f); 
         }
 
-        // --- HATA ÇÖZÜMÜ: SAHTE HASAR YERİNE GERÇEK STAT HASARI ---
         int finalDamage = (stats != null && stats.damage > 0) ? stats.damage : damageAmount;
 
         if (PlayerStats.Instance != null)
