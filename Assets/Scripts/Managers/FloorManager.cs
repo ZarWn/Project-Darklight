@@ -10,10 +10,10 @@ public class FloorManager : MonoBehaviour
     [Header("Kat Ayarları")]
     public int currentFloor = 0;
     public int totalFloors = 16;
-    public int mapSeed; 
-    public int currentNodeIndex = -1; 
+    public int mapSeed;  
+    public int currentNodeIndex = -1;  
     
-    public FloorType currentSelectedFloorType = FloorType.Savas; 
+    public FloorType currentSelectedFloorType = FloorType.Savas;  
     
     private List<List<FloorType>> floorMap = new List<List<FloorType>>();
 
@@ -23,7 +23,7 @@ public class FloorManager : MonoBehaviour
         else { Destroy(gameObject); return; }
         
         mapSeed = Random.Range(10000, 999999);
-        Random.InitState(mapSeed); 
+        Random.InitState(mapSeed);  
         GenerateRandomMap();
     }
 
@@ -32,7 +32,7 @@ public class FloorManager : MonoBehaviour
         floorMap.Clear();
         for (int i = 0; i < totalFloors; i++)
         {
-            if (i == totalFloors - 1) floorMap.Add(new List<FloorType> { FloorType.FinalBoss }); 
+            if (i == totalFloors - 1) floorMap.Add(new List<FloorType> { FloorType.FinalBoss });  
             else floorMap.Add(GenerateFloorOptions(i));
         }
     }
@@ -121,9 +121,9 @@ public class FloorManager : MonoBehaviour
 
     public void SelectFloor(FloorType floorType, int nodeIndex = -1)
     {
-        currentSelectedFloorType = floorType; 
+        currentSelectedFloorType = floorType;  
         currentFloor++;
-        currentNodeIndex = nodeIndex; 
+        currentNodeIndex = nodeIndex;  
         
         string sceneName = "GameScene";
         if (floorType == FloorType.Shop) sceneName = "ShopScene";
@@ -134,16 +134,16 @@ public class FloorManager : MonoBehaviour
     }
 
     public int GetTotalFloors() => totalFloors;
-    public int GetWavesForCurrentFloor() => 3 + (currentFloor / 3); 
+    public int GetWavesForCurrentFloor() => 3 + (currentFloor / 3);  
     public bool IsCurrentFloorBoss() => currentSelectedFloorType == FloorType.Boss || currentSelectedFloorType == FloorType.FinalBoss;
     public bool IsCurrentFloorElite() => currentSelectedFloorType == FloorType.Elite;
 
-    public int GetEnemyCountBonus() => currentFloor / 2; 
-    public float GetEnemyHPMultiplier() => 1f + (currentFloor * 0.15f); 
-    public float GetEnemySpeedMultiplier() => 1f + (currentFloor * 0.05f); 
+    public int GetEnemyCountBonus() => currentFloor / 2;  
+    public float GetEnemyHPMultiplier() => 1f + (currentFloor * 0.15f);  
+    public float GetEnemySpeedMultiplier() => 1f + (currentFloor * 0.05f);  
 
     public void OnFloorCompleted()
     {
-        SceneManager.LoadScene("FloorSelectScene"); 
+        SceneManager.LoadScene("FloorSelectScene");  
     }
 }

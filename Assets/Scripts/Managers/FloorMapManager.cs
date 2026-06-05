@@ -19,6 +19,10 @@ public class MapNode
 
 public class FloorMapManager : MonoBehaviour
 {
+    [Header("Geliştirici Hilesi")]
+    // YENİ: Haritada her yere tıklayabilmeni sağlayan şalter
+    public bool sinirsizErisimHilesi = false; 
+
     [Header("Map Ayarları")]
     public RectTransform mapContent;
 
@@ -66,14 +70,19 @@ public class FloorMapManager : MonoBehaviour
             scrollRect.verticalNormalizedPosition = 0f;
     }
 
+    // YENİ: Hile tuşunu dinleyen Update fonksiyonu
+    void Update()
+    {
+        if (Input.GetKeyDown(KeyCode.H))
+        {
+            sinirsizErisimHilesi = !sinirsizErisimHilesi;
+            UpdateNodeStates(); // Haritayı anında yenile ki kilitler açılsın/kapansın
+        }
+    }
+
     void GenerateGraph()
     {
-        // --- HATA ÇÖZÜMÜ: SABİT TOHUM HAFIZASI ---
-        // Savaş içindeki vuruş ihtimallerini bozmamak için eski rastgeleliği (state) kaydediyoruz.
         Random.State oldState = Random.state;
-        
-        // Zarları, FloorManager'daki kalıcı şifreye (mapSeed) göre atmaya zorluyoruz.
-        // Bu sayede sahne 1000 kere de yüklense, oklar BİREBİR aynı çizilecek!
         Random.InitState(floorManager.mapSeed);
 
         allNodes.Clear();
@@ -135,7 +144,6 @@ public class FloorMapManager : MonoBehaviour
             }
         }
         
-        // Okları çizme işlemi bitti, oyunun geri kalanı için rastgeleliği serbest bırakıyoruz.
         Random.state = oldState;
     }
 
@@ -253,6 +261,19 @@ public class FloorMapManager : MonoBehaviour
         {
             foreach (var node in floorList)
             {
+                // YENİ: Hile açıksa tüm düğümler aktif ve renkli olur!
+                if (sinirsizErisimHilesi)
+                {
+                    node.button.interactable = true;
+                    node.backgroundImage.color = GetNodeColor(node.type);
+                    
+                    Outline outline = node.gameObject.GetComponent<Outline>();
+                    if (outline == null) outline = node.gameObject.AddComponent<Outline>();
+                    outline.effectColor = Color.yellow; // Hile modunda belli olsun diye sarı çerçeve
+                    outline.effectDistance = new Vector2(3, 3);
+                    continue; // Hile açıksa aşağıdaki normal kuralları atla
+                }
+
                 if (node.floor < currentFloor)
                 {
                     node.backgroundImage.color = completedColor;
@@ -301,6 +322,9 @@ public class FloorMapManager : MonoBehaviour
                     Color c = GetNodeColor(node.type);
                     c.a = 0.3f;
                     node.backgroundImage.color = c;
+                    
+                    Outline outline = node.gameObject.GetComponent<Outline>();
+                    if (outline != null) Destroy(outline);
                 }
             }
         }
@@ -338,7 +362,15 @@ public class FloorMapManager : MonoBehaviour
 
     void OnNodeClicked(MapNode node)
     {
-        if (node.floor != floorManager.currentFloor) return;
+        // YENİ: Hile kapalıysa normal kat kontrolü yap
+        if (!sinirsizErisimHilesi && node.floor != floorManager.currentFloor) return;
+        
+        // YENİ: Eğer hile ile ileri bir kata atlarsak, FloorManager'ın mevcut katını güncelle ki oyun çökmesin
+        if (sinirsizErisimHilesi)
+        {
+            floorManager.currentFloor = node.floor;
+        }
+
         floorManager.SelectFloor(node.type, node.index);
     }
 }

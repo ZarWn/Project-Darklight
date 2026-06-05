@@ -179,6 +179,9 @@ MonoBehaviour:
   xpReward: 20
   goldReward: 10
   moveSpeed: 2
+  isEliteOrBoss: 0
+  minHitsToKill: 15
+  armorValue: 0
   bloodEffectPrefab: {fileID: 3720247234264900210, guid: 06fa407d5bf60634c98b26d6580fc70d, type: 3}
   hurtSound: {fileID: 8300000, guid: 02edebb2ee961794880f837035f13f6e, type: 3}
   isDead: 0
@@ -196,6 +199,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::EnemyController
   stopDistance: 3.3
+  attackDistance: 2
   attackInterval: 2.5
   damageAmount: 5
   isDead: 0
