@@ -122,7 +122,7 @@ public class LevelUpManager : MonoBehaviour
                 
             case 14: // Açgözlü Tüccar
                 stats.goldMultiplier += 0.40f;
-                int silinecekCan = Mathf.RoundToInt(stats.maxHP * 0.15f);
+                int silinecekCan = Mathf.RoundToInt(stats.maxHP * -0.15f);
                 
                 // IncreaseMaxHP metodunu bypass edip doğrudan can değerine müdahale ediyoruz
                 if (stats.maxHP > silinecekCan + 1) 
